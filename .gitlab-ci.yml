@@ -1,0 +1,64 @@
+image: maven:3-jdk-8-alpine
+
+variables:
+  # This will supress any download for dependencies and plugins or upload messages which would clutter the console log.
+  # `showDateTime` will show the passed time in milliseconds. You need to specify `--batch-mode` to make this work.
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=WARN -Dorg.slf4j.simpleLogger.showDateTime=true -Djava.awt.headless=true"
+  # As of Maven 3.3.0 instead of this you may define these options in `.mvn/maven.config` so the same config is used
+  # when running from the command line.
+  # `installAtEnd` and `deployAtEnd`are only effective with recent version of the corresponding plugins.
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+
+# Cache downloaded dependencies and plugins between builds.
+# To keep cache across branches add 'key: "$CI_JOB_REF_NAME"'
+cache:
+  key: MAVEN_MODULES
+  paths:
+    - .m2/repository
+
+before_script:
+  - echo -e " Home:\        ${HOME}\n Pipeline:\     ${CI_PIPELINE_ID}\n Branch/Tag:\  ${CI_JOB_REF_NAME}\n Gitlab User:\ ${GITLAB_USER_NAME}\n Verzeichnis:\ `pwd`\n MAVEN_OPTS:\ ${MAVEN_OPTS}\n MAVEN_CLI_OPTS:\ ${MAVEN_CLI_OPTS}"
+
+stages:
+  - build
+  - deploy
+
+#
+# BUILD AND TEST PHASE
+#
+build & test:
+  stage: build
+  except:
+    - master
+  tags:
+    - Java
+  script:
+    - mvn $MAVEN_CLI_OPTS spotless:check
+    - mvn $MAVEN_CLI_OPTS clean install
+    - mvn $MAVEN_CLI_OPTS test
+  artifacts:
+    paths:
+      - target/workhorse-persistence-redis.jar
+    reports:
+      junit:
+        - "target/surefire-reports/TEST-*.xml"
+    expire_in: 2 hour
+
+deploy:
+  stage: deploy
+  tags:
+    - Java
+  only:
+    - tags
+  script:
+    # GPG stuff
+    - apk update && apk add gnupg
+    - echo "Import the GPG key"
+    - echo  "$workhorse_gpg" | base64 -d > private.key
+    - gpg --version
+    - export PASSPHRASE=$(echo "$workhorse_passphrase" | base64 -d)
+    - export OSS_PASSWORD=$(echo "$oss_password" | base64 -d)
+    - gpg --batch --import ./private.key
+    - rm ./private.key
+    # Release it
+    - mvn $MAVEN_CLI_OPTS -s release_settings.xml deploy -DskipTests -P release
