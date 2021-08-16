@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -11,15 +12,15 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
@@ -32,15 +33,29 @@ public class RedisController {
     private static final Logger log = LoggerFactory.getLogger(RedisController.class);
 
     private final ObjectMapper jsonObjectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostConstruct
     private void init() {
         jsonObjectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         jsonObjectMapper.registerModule(new JavaTimeModule());
+
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        objectMapper.registerModule(new JavaTimeModule());
     }
 
     @Inject
     JedisExecution jedisExecution;
+
+    public Long incr(String key) {
+        return jedisExecution.execute(new JedisOperation<Long>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Long perform(Jedis jedis) {
+                return jedis.incr(key);
+            }
+        });
+    }
 
     public String get(String key) {
 
@@ -55,6 +70,61 @@ public class RedisController {
 
         log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
 
+        return retVal;
+    }
+
+    public <T> T hGet(String key, String field, Class<T> clazz) {
+
+        Long t1 = System.currentTimeMillis();
+
+        T retVal = jedisExecution.execute(new JedisOperation<T>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public T perform(Jedis jedis) {
+
+                String value = jedis.hget(key, field);
+                if (value == null) {
+                    return null;
+                }
+
+                try {
+                    return objectMapper.convertValue(value, clazz);
+                } catch (IllegalArgumentException e) {
+                    log.error("String could not deserialize object to  " + clazz + ": " + value, e);
+                }
+                return null;
+            }
+
+        });
+
+        log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
+        return retVal;
+    }
+
+    public <T> T hGet(String key, Class<T> clazz) {
+        Long t1 = System.currentTimeMillis();
+
+        T retVal = jedisExecution.execute(new JedisOperation<T>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public T perform(Jedis jedis) {
+
+                Map<String, String> map = jedis.hgetAll(key);
+                if (map == null) {
+                    return null;
+                }
+
+                try {
+                    return objectMapper.convertValue(map, clazz);
+                } catch (IllegalArgumentException e) {
+                    log.error("MAP could not deserialize object to  " + clazz + ": " + map, e);
+                }
+                return null;
+            }
+
+        });
+
+        log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
         return retVal;
     }
 
@@ -125,7 +195,37 @@ public class RedisController {
     }
 
     public Boolean set(String key, Object data) {
-        return setex(key, RedisPersistenceConfig.standardCacheTime, data);
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+                try {
+                    jedis.set(key, jsonObjectMapper.writeValueAsString(data));
+
+                } catch (JsonProcessingException e) {
+                    log.error("Data could not be serialized to JSON: " + data, e);
+                    return false;
+                }
+                return true;
+            }
+        });
+    }
+
+    public Boolean hSet(String key, Object data) {
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+                try {
+                    jedis.hset(key, objectMapper.convertValue(data, new TypeReference<Map<String, String>>() {}));
+
+                } catch (IllegalArgumentException e) {
+                    log.error("Data could not be serialized to MAP: " + data, e);
+                    return false;
+                }
+                return true;
+            }
+        });
     }
 
     public Boolean setex(String key, Integer expirationInMinutes, Object data) {
@@ -291,17 +391,17 @@ public class RedisController {
         });
     }
 
-    public Boolean flushAll() {
-        log.info("Redis flush all..");
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                jedis.flushAll();
-                return true;
-            }
-        });
-    }
+    // public Boolean flushAll() {
+    // log.info("Redis flush all..");
+    // return jedisExecution.execute(new JedisOperation<Boolean>() {
+    // @SuppressWarnings("unchecked")
+    // @Override
+    // public Boolean perform(Jedis jedis) {
+    // jedis.flushAll();
+    // return true;
+    // }
+    // });
+    // }
 
     /**
      * Enables the deletion of entire key areas using wildcards in the key (*)
@@ -488,6 +588,40 @@ public class RedisController {
             }
         });
     }
+
+    public long lrem(String key, Object data) {
+        return jedisExecution.execute(new JedisOperation<Long>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Long perform(Jedis jedis) {
+                try {
+                    return jedis.lrem(key, 0, jsonObjectMapper.writeValueAsString(data));
+                } catch (JsonProcessingException e) {
+                    log.error("Data could not be serialized to JSON: " + data, e);
+                    return null;
+                }
+            }
+        });
+    }
+
+    // public <T> T lmove(final String srcKey, final String dstKey, final ListDirection from, final ListDirection to, Class<T> clazz) {
+    // return jedisExecution.execute(new JedisOperation<T>() {
+    // @SuppressWarnings("unchecked")
+    // @Override
+    // public T perform(Jedis jedis) {
+    //
+    // String objectJson = jedis.lmove(srcKey, dstKey, from, to);
+    //
+    // try {
+    // return jsonObjectMapper.readValue(objectJson, clazz);
+    // } catch (IOException e) {
+    // log.error("JSON konnte nicht zu " + clazz + " Objekt deserialisert werden: " + objectJson, e);
+    // }
+    // return null;
+    // }
+    //
+    // });
+    // }
 
     public <T> void publish(String channelId, String message) {
         jedisExecution.execute(new JedisOperation<T>() {

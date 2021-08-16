@@ -1,53 +1,131 @@
 package io.coodoo.workhorse.persistence.redis.control;
 
 import java.util.Arrays;
+
 import org.jboss.logging.Logger;
 
 public enum RedisKey {
 
-    SET_OF_JOB("set:job"),
-
     /**
-     * List of all JobExecutionId by JobId Set:Job:<id>:JobExecutions
-     */
-    SET_OF_EXECUTION_BY_JOB("set:job:%s:jobExecutions"),
-
-    /**
-     * 
+     * Store the configurations of the job engine
      */
     JOB_ENGINE_CONFIG("job:config"),
 
     /**
-     * Job:<id>
-     */
-    JOB_BY_ID("job:%s"),
-
-    /**
-     * Value to use as Id for Job.
+     * Value to use as ID for Job.
      */
     INC_JOB_ID("jobIndex"),
 
     /**
-     * Value to use as Id for JobExecution.
+     * Store the job with attributes as JSON job:<id>
      */
-    INC_JOB_EXECUTION_ID("jobExectionIndex"),
+    JOB_BY_ID("job:%s"),
 
     /**
-     * Job:<id>:JobExecution:<id>
+     * Store the ID of the job with the given workername job:workername:<workerClassName>
      */
-    JOB_EXECUTION_BY_ID("job:%s:jobE:%s"),
+    JOB_BY_WORKER_NAME("job:workername:%s"),
+
+    /**
+     * Store the ID of the job with the given name
+     * 
+     * job:name:<jobName>
+     */
+    JOB_BY_NAME("job:name:%s"),
+
+    /**
+     * List of IDs of all jobs
+     */
+    LIST_OF_JOB("list:job"),
+
+    /**
+     * List of jobs by status
+     * 
+     * list:job:<JobStatus>
+     */
+    LIST_OF_JOB_BY_STATUS("list:job:%s"),
+
+    // KEYS FOR EXECUTION
+
+    /**
+     * Value to use as ID for execution.
+     */
+    INC_EXECUTION_ID("executionIndex"),
+
+    /**
+     * Store the execution with all attributes as JSON
+     * 
+     * exe:<executionId>
+     */
+    EXECUTION_BY_ID("exe:%s"),
+
+    /**
+     * Store the executionId associated with the given parameterhash paramHash:<parametersHash>:exe
+     */
+    EXECUTION_BY_PARAMETER_HASH("paramHash:%s:exe"),
+
+    /**
+     * List of all executionId by JobId
+     * 
+     * list:job:<jobId>:exe
+     */
+    LIST_OF_EXECUTION_BY_JOB("list:job:%s:exe"),
+
+    /**
+     * List of all executionId by status
+     * 
+     * list:job:<jobId>:executionStatus:<status>:exe
+     */
+    LIST_OF_EXECUTION_OF_JOB_BY_STATUS("list:job:%s:executionStatus:%s:exe"),
+
+    /**
+     * List of all executionId by batchId
+     * 
+     * list:batch:<batchId>:exe
+     */
+    LIST_OF_EXECUTION_OF_BATCH("list:batch:%s:exe"),
+
+    /**
+     * List of all executionId by chainId
+     * 
+     * list:chain:<batchId>:exe
+     */
+    LIST_OF_EXECUTION_OF_CHAIN("list:chain:%s:exe"),
+
+    // KEYS FOR EXECUTION LOG
+
+    /**
+     * Store the execution with all attributes as JSON
+     * 
+     * exe:<executionId>
+     */
+    EXECUTION_LOG_BY_ID("log:%s:exe"),
+
+    // KEYS FOR WORKHORSE_LOG
 
     /**
      * Value to use as Id for JobEngineLog.
      */
-    INC_JOB_ENGINE_LOG_ID("jobEngineLogIndex"),
+    INC_WORKHORSE_LOG_ID("workhorseLogIndex"),
 
     /**
-     * jobEngineLog:<id>
+     * Store a workhorseLog with all attributes as JSON
+     * 
+     * workhorseLog:<workhorseLogId>
      */
-    JOB_ENGINE_LOG("jobEngineLog:%s"),
+    WORKHORSE_LOG_BY_ID("workhorseLog:%s"),
 
-    JOB_ENGINE_LOG_LIST("jobEngineLogList");
+    /**
+     * List of workhorse logs by jobId
+     * 
+     * list:job:<jobId>:workhorselog
+     */
+    LIST_OF_WORKHORSE_LOG_BY_JOB("list:job:%s:workhorselog"),
+
+    /**
+     * List of all workhorse logs
+     */
+    WORKHORSE_LOG_LIST("list:workhorselog");
 
     private static Logger log = Logger.getLogger(RedisKey.class);
 

@@ -7,6 +7,8 @@ import io.coodoo.workhorse.core.entity.WorkhorseConfig;
 import io.coodoo.workhorse.persistence.interfaces.ConfigPersistence;
 import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
+import io.coodoo.workhorse.persistence.redis.control.RedisController;
+import io.coodoo.workhorse.persistence.redis.control.RedisKey;
 
 @ApplicationScoped
 public class RedisConfigPersistence implements ConfigPersistence {
@@ -14,28 +16,31 @@ public class RedisConfigPersistence implements ConfigPersistence {
     @Inject
     JedisExecution jedisExecution;
 
+    @Inject
+    RedisController redisService;
+
     @Override
     public WorkhorseConfig get() {
-        // TODO Auto-generated method stub
-        return null;
+
+        return redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), WorkhorseConfig.class);
     }
 
     @Override
     public WorkhorseConfig update(WorkhorseConfig workhorseConfig) {
-        // TODO Auto-generated method stub
-        return null;
+        redisService.set(RedisKey.JOB_ENGINE_CONFIG.getQuery(), workhorseConfig);
+        return get();
     }
 
     @Override
     public String getPersistenceName() {
-        // TODO Auto-generated method stub
-        return null;
+
+        return RedisPersistenceConfig.NAME;
     }
 
     @Override
     public String getPersistenceVersion() {
-        // TODO Auto-generated method stub
-        return null;
+
+        return new RedisPersistenceConfig().getPersistenceVersion();
     }
 
     @Override
