@@ -26,6 +26,7 @@ import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
+import redis.clients.jedis.Transaction;
 
 @Dependent
 public class RedisController {
@@ -494,6 +495,22 @@ public class RedisController {
         });
     }
 
+    public Boolean lpush(String key, Object data) {
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+                try {
+                    jedis.lpush(key, jsonObjectMapper.writeValueAsString(data));
+                } catch (JsonProcessingException e) {
+                    log.error("Data could not be serialized to JSON: " + data, e);
+                    return false;
+                }
+                return true;
+            }
+        });
+    }
+
     public <T> T lpop(String key, Class<T> clazz) {
 
         return jedisExecution.execute(new JedisOperation<T>() {
@@ -604,24 +621,26 @@ public class RedisController {
         });
     }
 
-    // public <T> T lmove(final String srcKey, final String dstKey, final ListDirection from, final ListDirection to, Class<T> clazz) {
-    // return jedisExecution.execute(new JedisOperation<T>() {
-    // @SuppressWarnings("unchecked")
-    // @Override
-    // public T perform(Jedis jedis) {
-    //
-    // String objectJson = jedis.lmove(srcKey, dstKey, from, to);
-    //
-    // try {
-    // return jsonObjectMapper.readValue(objectJson, clazz);
-    // } catch (IOException e) {
-    // log.error("JSON konnte nicht zu " + clazz + " Objekt deserialisert werden: " + objectJson, e);
-    // }
-    // return null;
-    // }
-    //
-    // });
-    // }
+    public boolean lmove(String srcListKey, String destListKey, Object data) {
+
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+                Transaction transaction = jedis.multi();
+                try {
+                    transaction.lrem(srcListKey, 0, jsonObjectMapper.writeValueAsString(data));
+                    transaction.rpush(destListKey, jsonObjectMapper.writeValueAsString(data));
+                    transaction.exec();
+                    return true;
+
+                } catch (JsonProcessingException e) {
+                    log.error("Data could not be serialized to JSON: " + data, e);
+                    return false;
+                }
+            }
+        });
+    }
 
     public <T> void publish(String channelId, String message) {
         jedisExecution.execute(new JedisOperation<T>() {

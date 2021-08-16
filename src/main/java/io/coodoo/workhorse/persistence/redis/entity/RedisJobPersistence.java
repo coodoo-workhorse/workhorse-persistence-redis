@@ -38,7 +38,7 @@ public class RedisJobPersistence implements JobPersistence {
     @Override
     public Job get(Long jobId) {
         String redisKey = RedisKey.JOB_BY_ID.getQuery(jobId);
-        return redisService.hGet(redisKey, Job.class);
+        return redisService.get(redisKey, Job.class);
     }
 
     @Override
@@ -121,11 +121,14 @@ public class RedisJobPersistence implements JobPersistence {
     @Override
     public ListingResult<Job> getJobListing(ListingParameters listingParameters) {
 
-        // String redisKey = RedisKey.LIST_OF_EXECUTION_BY_JOB.getQuery(jobId);
+        String redisKey = RedisKey.LIST_OF_JOB.getQuery();
 
-        // List<Long> executionIds = redisService.lrange(redisKey, Long.class, 0, -1);
+        long start = listingParameters.getIndex();
+        long end = listingParameters.getIndex() + listingParameters.getLimit() - 1;
 
-        Map<Long, Response<String>> responseMap = getAllJobsAsRedisResponse();
+        List<Long> jobIds = redisService.lrange(redisKey, Long.class, start, end);
+
+        Map<Long, Response<String>> responseMap = getAllJobsAsRedisResponse(jobIds);
         List<Job> result = new ArrayList<>();
 
         for (Response<String> response : responseMap.values()) {
@@ -134,7 +137,8 @@ public class RedisJobPersistence implements JobPersistence {
             result.add(job);
 
         }
-        Metadata metadata = new Metadata(Long.valueOf(result.size()), listingParameters);
+        long size = redisService.llen(redisKey);
+        Metadata metadata = new Metadata(size, listingParameters);
 
         return new ListingResult<Job>(result, metadata);
     }
@@ -282,10 +286,10 @@ public class RedisJobPersistence implements JobPersistence {
         redisService.set(workerNameKey, id);
 
         // add the ID of the job in the list of jobs
-        redisService.rpush(jobListKey, id);
+        redisService.lpush(jobListKey, id);
 
         // add the ID of the job to the list of job on the given status
-        redisService.rpush(jobListByStatusKey, id);
+        redisService.lpush(jobListByStatusKey, id);
 
         return job;
     }
@@ -324,10 +328,12 @@ public class RedisJobPersistence implements JobPersistence {
         if (!Objects.equals(oldJob.getStatus(), newJob.getStatus())) {
 
             String jobListByOldStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(oldJob.getStatus());
-            redisService.lrem(jobListByOldStatusKey, jobId);
+            // redisService.lrem(jobListByOldStatusKey, jobId);
 
             String jobListByNewStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(newJob.getStatus());
-            redisService.rpush(jobListByNewStatusKey, jobId);
+            // redisService.rpush(jobListByNewStatusKey, jobId);
+
+            redisService.lmove(jobListByOldStatusKey, jobListByNewStatusKey, jobId);
 
         }
 

@@ -22,12 +22,12 @@ public class RedisConfigPersistence implements ConfigPersistence {
     @Override
     public WorkhorseConfig get() {
 
-        return redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), WorkhorseConfig.class);
+        return redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), RedisPersistenceConfig.class);
     }
 
     @Override
     public WorkhorseConfig update(WorkhorseConfig workhorseConfig) {
-        redisService.set(RedisKey.JOB_ENGINE_CONFIG.getQuery(), workhorseConfig);
+        redisService.set(RedisKey.JOB_ENGINE_CONFIG.getQuery(), (RedisPersistenceConfig) workhorseConfig);
         return get();
     }
 

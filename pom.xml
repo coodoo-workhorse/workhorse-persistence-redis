@@ -52,7 +52,7 @@
       <groupId>io.coodoo</groupId>
       <artifactId>workhorse</artifactId>
       <version>${project.version}</version>
-      <!-- <scope>provided</scope> -->
+     <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>javax.enterprise</groupId>

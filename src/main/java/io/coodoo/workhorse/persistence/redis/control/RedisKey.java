@@ -95,11 +95,25 @@ public enum RedisKey {
     // KEYS FOR EXECUTION LOG
 
     /**
-     * Store the execution with all attributes as JSON
+     * Store the log execution with all attributes as JSON
      * 
      * exe:<executionId>
      */
     EXECUTION_LOG_BY_ID("log:%s:exe"),
+
+    /**
+     * Store the logs of an execution
+     * 
+     * log:<executionId>:exe
+     */
+    LIST_OF_EXECUTION_LOG_BY_ID("log:%s:exe"),
+
+    /**
+     * Store the error of an execution
+     * 
+     * error:<executionId>:exe
+     */
+    EXECUTION_ERROR_AND_STACKTRACE_BY_ID("error:%s:exe"),
 
     // KEYS FOR WORKHORSE_LOG
 

@@ -1,9 +1,7 @@
 package io.coodoo.workhorse.persistence.redis.entity;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -15,13 +13,9 @@ import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
 import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
-import io.coodoo.workhorse.persistence.redis.control.JedisOperation;
 import io.coodoo.workhorse.persistence.redis.control.RedisController;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
 import io.coodoo.workhorse.util.WorkhorseUtil;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.Response;
 
 @ApplicationScoped
 public class RedisLogPersistence implements LogPersistence {
@@ -65,12 +59,12 @@ public class RedisLogPersistence implements LogPersistence {
         redisService.set(workhorseLogKey, workhorseLog);
 
         String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
-        redisService.rpush(workhorseLogListKey, workhorseLogId);
+        redisService.lpush(workhorseLogListKey, workhorseLogId);
 
         Long jobId = workhorseLog.getJobId();
         if (jobId != null) {
             String workhorseLogByJobListKey = RedisKey.LIST_OF_WORKHORSE_LOG_BY_JOB.getQuery(jobId);
-            redisService.rpush(workhorseLogByJobListKey, workhorseLog);
+            redisService.lpush(workhorseLogByJobListKey, workhorseLog);
         }
 
         return workhorseLog;
@@ -95,15 +89,57 @@ public class RedisLogPersistence implements LogPersistence {
     @Override
     public ListingResult<WorkhorseLog> getWorkhorseLogListing(ListingParameters listingParameters) {
 
-        List<WorkhorseLog> result = getAll(listingParameters.getLimit());
-        Metadata metadata = new Metadata(Long.valueOf(result.size()), listingParameters);
+        long start = listingParameters.getIndex();
+        long end = listingParameters.getIndex() + listingParameters.getLimit() - 1;
+
+        String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
+        List<Long> workhorseLogIds = redisService.lrange(workhorseLogListKey, Long.class, start, end);
+
+        List<String> executionIdKeys = new ArrayList<>();
+        List<WorkhorseLog> result = new ArrayList<>();
+
+        for (Long workhorseLogId : workhorseLogIds) {
+
+            executionIdKeys.add(RedisKey.WORKHORSE_LOG_BY_ID.getQuery(workhorseLogId));
+        }
+
+        result = redisService.get(executionIdKeys, WorkhorseLog.class);
+
+        long size = redisService.llen(workhorseLogListKey);
+        Metadata metadata = new Metadata(size, listingParameters);
 
         return new ListingResult<WorkhorseLog>(result, metadata);
     }
 
     @Override
     public int deleteByJobId(Long jobId) {
-        // TODO Auto-generated method stub
+
+        String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
+
+        String workhorseLogByJobKey = RedisKey.LIST_OF_WORKHORSE_LOG_BY_JOB.getQuery(jobId);
+
+        List<Long> workhorseLogIds = redisService.lrange(workhorseLogByJobKey, Long.class, 0, -1);
+
+        List<String> executionIdKeys = new ArrayList<>();
+        for (Long workhorseLogId : workhorseLogIds) {
+
+            String workhorseLogKey = RedisKey.WORKHORSE_LOG_BY_ID.getQuery(workhorseLogId);
+            // add the redis key of the workhorse log to the list of keys to delete
+            executionIdKeys.add(workhorseLogKey);
+
+            // remove the ID of the log in the list of workhorse IDs of the given jobId
+            redisService.lrem(workhorseLogByJobKey, workhorseLogId);
+
+            // remove the ID of the log in the global list of IDs
+            redisService.lrem(workhorseLogListKey, workhorseLogId);
+
+            // Delete the workhorse Log
+            redisService.del(workhorseLogKey);
+        }
+
+        // delete the key of the list of workhorse IDs of the given jobId
+        redisService.del(workhorseLogByJobKey);
+
         return 0;
     }
 
@@ -115,36 +151,6 @@ public class RedisLogPersistence implements LogPersistence {
     @Override
     public void connect(Object... params) {
         // TODO Auto-generated method stub
-
-    }
-
-    private Map<Long, Response<String>> getAllWorkhorseLogById(List<Long> workhorseLogIds) {
-
-        Map<Long, Response<String>> responseMap = new HashMap<>();
-
-        jedisExecution.execute(new JedisOperation<Long>() {
-
-            @SuppressWarnings("unchecked")
-            @Override
-            public Long perform(Jedis jedis) {
-                long length = 0;
-                Pipeline pipeline = jedis.pipelined();
-
-                for (Long workhorseLogId : workhorseLogIds) {
-                    String workhorseLogKey = RedisKey.WORKHORSE_LOG_BY_ID.getQuery(workhorseLogId);
-
-                    Response<String> foundWorkhorseLog = pipeline.get(workhorseLogKey);
-                    responseMap.put(workhorseLogId, foundWorkhorseLog);
-                    length++;
-                }
-
-                pipeline.sync();
-                return length;
-            }
-
-        });
-
-        return responseMap;
 
     }
 
