@@ -25,27 +25,6 @@ public class RedisConfigPersistence implements ConfigPersistence {
 
     @Override
     public WorkhorseConfig get() {
-
-        // RedisPersistenceConfig config = redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), RedisPersistenceConfig.class);
-        //
-        // WorkhorseConfig workhorseConfig = new RedisPersistenceConfig();
-        //
-        // workhorseConfig.setTimeZone(config.getTimeZone());
-        // workhorseConfig.setBufferMax(config.getBufferMax());
-        // workhorseConfig.setBufferMin(config.getBufferMin());
-        // workhorseConfig.setBufferPollInterval(config.getBufferPollInterval());
-        // workhorseConfig.setExecutionTimeout(config.getExecutionTimeout());
-        // workhorseConfig.setExecutionTimeoutStatus(config.getExecutionTimeoutStatus());
-        // workhorseConfig.setBufferPushFallbackPollInterval(config.getBufferPushFallbackPollInterval());
-        // workhorseConfig.setMinutesUntilCleanup(config.getMinutesUntilCleanup());
-        // workhorseConfig.setMaxExecutionSummaryLength(config.getMaxExecutionSummaryLength());
-        // workhorseConfig.setLogChange(config.getLogChange());
-        // workhorseConfig.setLogTimeFormat(config.getLogTimeFormat());
-        // workhorseConfig.setLogInfoMarker(config.getLogInfoMarker());
-        // workhorseConfig.setLogWarnMarker(config.getLogWarnMarker());
-        // workhorseConfig.setLogErrorMarker(config.getLogErrorMarker());
-        // return workhorseConfig;
-
         return redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), RedisPersistenceConfig.class);
     }
 

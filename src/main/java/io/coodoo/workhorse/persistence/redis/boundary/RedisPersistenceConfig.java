@@ -23,7 +23,7 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
     protected String version = null;
     {
         try {
-            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("workhorse-persistence-legacy.txt");
+            InputStream inputStream = getClass().getClassLoader().getResourceAsStream("workhorse-persistence-redis.txt");
             InputStreamReader streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
             BufferedReader reader = new BufferedReader(streamReader);
             version = reader.readLine();
