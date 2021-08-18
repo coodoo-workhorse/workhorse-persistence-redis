@@ -8,11 +8,13 @@ import java.util.Map;
 import java.util.Objects;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.coodoo.workhorse.core.control.event.NewExecutionEvent;
 import io.coodoo.workhorse.core.entity.Execution;
 import io.coodoo.workhorse.core.entity.ExecutionFailStatus;
 import io.coodoo.workhorse.core.entity.ExecutionLog;
@@ -25,25 +27,32 @@ import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
 import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
+import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
 import io.coodoo.workhorse.persistence.redis.control.JedisOperation;
-import io.coodoo.workhorse.persistence.redis.control.RedisController;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
+import io.coodoo.workhorse.persistence.redis.control.RedisService;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 
+/**
+ * @author coodoo GmbH (coodoo.io)
+ */
 @ApplicationScoped
 public class RedisExecutionPersistence implements ExecutionPersistence {
 
     private static Logger log = LoggerFactory.getLogger(RedisExecutionPersistence.class);
 
     @Inject
-    RedisController redisService;
+    RedisService redisService;
 
     @Inject
     JedisExecution jedisExecution;
+
+    @Inject
+    Event<NewExecutionEvent> newExecutionEventEvent;
 
     @Override
     public Execution getById(Long jobId, Long executionId) {
@@ -66,16 +75,6 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         }
 
         return redisService.get(executionIdKeys, Execution.class);
-
-        // List<Execution> executions = new ArrayList<>();
-        // Map<Long, Response<String>> responseMap = getAllExecutionById(executionIds);
-        //
-        // for (Response<String> response : responseMap.values()) {
-        // Execution execution = WorkhorseUtil.jsonToParameters(response.get(), Execution.class);
-        // executions.add(execution);
-        // }
-        //
-        // return executions;
     }
 
     private Map<Long, Response<String>> getAllExecutionById(List<Long> executionIds) {
@@ -209,6 +208,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             redisService.rpush(listOfExecutionByJobOnStatus, executionId);
         }
 
+        newExecutionEventEvent.fireAsync(new NewExecutionEvent(execution.getJobId(), execution.getId()));
         return redisService.get(executionKey, Execution.class);
     }
 
@@ -277,13 +277,8 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             Long jobId = execution.getJobId();
             // remove the ID of the execution in the list of her old status
             String oldListOfExecutionByJobOnStatus = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(jobId, oldExecution.getStatus());
-
-            // redisService.lrem(oldListOfExecutionByJobOnStatus, execution.getId());
-
             // add the ID of the execution in the list of the new status
             String newListOfExecutionByJobOnStatus = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(jobId, execution.getStatus());
-
-            // redisService.rpush(newListOfExecutionByJobOnStatus, execution.getId());
 
             redisService.lmove(oldListOfExecutionByJobOnStatus, newListOfExecutionByJobOnStatus, executionId);
 
@@ -318,8 +313,20 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
     @Override
     public int deleteOlderExecutions(Long jobId, LocalDateTime preDate) {
-        // TODO Auto-generated method stub
-        return 0;
+
+        int count = 0;
+        // get all executions
+        List<Execution> executions = getByJobId(jobId, -1l);
+
+        for (Execution execution : executions) {
+
+            if (execution.getCreatedAt().isBefore(preDate)) {
+                delete(jobId, execution.getId());
+                count++;
+            }
+
+        }
+        return count;
     }
 
     @Override
@@ -414,6 +421,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         String listOfExecutionOfChainId = RedisKey.LIST_OF_EXECUTION_OF_CHAIN.getQuery(chainId);
         List<Long> chainExecutionIds = redisService.lrange(listOfExecutionOfChainId, Long.class, 0, -1);
 
+        // set the queued executions of the chain to status ABORTED
         for (Long executionId : chainExecutionIds) {
             String executionKey = RedisKey.EXECUTION_BY_ID.getQuery(executionId);
             Execution execution = redisService.get(executionKey, Execution.class);
@@ -427,8 +435,24 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
     @Override
     public List<Execution> findTimeoutExecutions(LocalDateTime time) {
-        // TODO Auto-generated method stub
-        return null;
+        String redisKey = RedisKey.LIST_OF_JOB.getQuery();
+
+        List<Execution> result = new ArrayList<>();
+        List<Long> jobIds = redisService.lrange(redisKey, Long.class, 0, -1);
+
+        for (Long jobId : jobIds) {
+
+            List<Execution> executions = getByJobId(jobId, -1l);
+
+            for (Execution execution : executions) {
+                if (ExecutionStatus.RUNNING.equals(execution.getStatus()) && execution.getUpdatedAt().isBefore(time)) {
+                    result.add(execution);
+                }
+            }
+
+        }
+
+        return result;
     }
 
     @Override
@@ -578,12 +602,12 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
     @Override
     public String getPersistenceName() {
-        return RedisPersistenceConfig.NAME;
+        return StaticRedisConfig.NAME;
     }
 
     @Override
     public boolean isPusherAvailable() {
-        return false;
+        return true;
     }
 
 }

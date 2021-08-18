@@ -22,27 +22,11 @@ Before you begin, ensure you have met the following requirements:
 * You have [Maven](https://maven.apache.org/download.cgi) running on your system
   
 ## Get Workhorse
-  
-Please create a [gitLab token](https://gitlab.coodoo.io/profile/personal_access_tokens) and store it in the settings.xml of your local maven repository as follows:
+
+Run command:
 
 ```
-<server>
-	<id>gitlab-maven</id>
-		<configuration>
-			<httpHeaders>
-				<property>
-					<name>Private-Token</name>
-					<value>ENTER_YOUR_PRIVATE_TOKEN_HERE</value>
-				</property>
-		</httpHeaders>
-	</configuration>
-</server>
-```
-
-Run command :
-
-```
-mvn dependency:get -Dartifact=io.coodoo:workhorse:2.0.0-RC1-SNAPSHOT
+mvn dependency:get -Dartifact=io.coodoo:workhorse:2.0.0-RC2-SNAPSHOT
 ```
 
 ## Install

@@ -12,16 +12,20 @@ import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
 import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
+import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
-import io.coodoo.workhorse.persistence.redis.control.RedisController;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
+import io.coodoo.workhorse.persistence.redis.control.RedisService;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 
+/**
+ * @author coodoo GmbH (coodoo.io)
+ */
 @ApplicationScoped
 public class RedisLogPersistence implements LogPersistence {
 
     @Inject
-    RedisController redisService;
+    RedisService redisService;
 
     @Inject
     JedisExecution jedisExecution;
@@ -145,7 +149,7 @@ public class RedisLogPersistence implements LogPersistence {
 
     @Override
     public String getPersistenceName() {
-        return RedisPersistenceConfig.NAME;
+        return StaticRedisConfig.NAME;
     }
 
     @Override

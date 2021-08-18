@@ -13,18 +13,14 @@ import io.coodoo.workhorse.core.entity.WorkhorseConfig;
  */
 public class RedisPersistenceConfig extends WorkhorseConfig {
 
-    public static final String NAME = "Redis Persistence";
+    protected String persistenceName = "Redis Persistence";
+    protected String redisHost = "localhost";
+    protected int redisPort = 6379;
+    protected int maxTotal = 10240;
+    protected int maxIdle = 100;
+    protected int minIdle = 50;
 
-    public static String redisHost = "localhost";
-    public static int redisPort = 6379;
-    public static final int CACHE_TIME_1_HOURS = 60;
-    public static final int CACHE_TIME_2_HOURS = 120;
-    public static final int CACHE_TIME_4_HOURS = 240;
-    public static final int CACHE_TIME_12_HOURS = 720;
-    public static final int CACHE_TIME_24_HOURS = 1440;
-    public static int standardCacheTime = CACHE_TIME_4_HOURS;
-
-    private static String version = null;
+    protected String version = null;
     {
         try {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("workhorse-persistence-legacy.txt");
@@ -50,7 +46,19 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
 
     @Override
     public String getPersistenceName() {
-        return NAME;
+        return StaticRedisConfig.NAME;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public void setVersion(String version) {
+        this.version = version;
+    }
+
+    public void setPersistenceName(String persistenceName) {
+        this.persistenceName = persistenceName;
     }
 
     @Override
@@ -72,6 +80,30 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
 
     public void setRedisPort(int redisPort) {
         this.redisPort = redisPort;
+    }
+
+    public int getMaxTotal() {
+        return maxTotal;
+    }
+
+    public void setMaxTotal(int maxTotal) {
+        this.maxTotal = maxTotal;
+    }
+
+    public int getMaxIdle() {
+        return maxIdle;
+    }
+
+    public void setMaxIdle(int maxIdle) {
+        this.maxIdle = maxIdle;
+    }
+
+    public int getMinIdle() {
+        return minIdle;
+    }
+
+    public void setMinIdle(int minIdle) {
+        this.minIdle = minIdle;
     }
 
 }

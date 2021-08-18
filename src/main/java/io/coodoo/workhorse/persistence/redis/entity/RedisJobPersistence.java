@@ -17,20 +17,24 @@ import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
 import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
+import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
 import io.coodoo.workhorse.persistence.redis.control.JedisOperation;
-import io.coodoo.workhorse.persistence.redis.control.RedisController;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
+import io.coodoo.workhorse.persistence.redis.control.RedisService;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 
+/**
+ * @author coodoo GmbH (coodoo.io)
+ */
 @ApplicationScoped
 public class RedisJobPersistence implements JobPersistence {
 
     @Inject
-    RedisController redisService;
+    RedisService redisService;
 
     @Inject
     JedisExecution jedisExecution;
@@ -128,15 +132,14 @@ public class RedisJobPersistence implements JobPersistence {
 
         List<Long> jobIds = redisService.lrange(redisKey, Long.class, start, end);
 
-        Map<Long, Response<String>> responseMap = getAllJobsAsRedisResponse(jobIds);
-        List<Job> result = new ArrayList<>();
+        List<String> jobKeys = new ArrayList<>();
 
-        for (Response<String> response : responseMap.values()) {
-            Job job = WorkhorseUtil.jsonToParameters(response.get(), Job.class);
-
-            result.add(job);
-
+        for (Long jobId : jobIds) {
+            jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
         }
+
+        List<Job> result = redisService.get(jobKeys, Job.class);
+
         long size = redisService.llen(redisKey);
         Metadata metadata = new Metadata(size, listingParameters);
 
@@ -328,17 +331,13 @@ public class RedisJobPersistence implements JobPersistence {
         if (!Objects.equals(oldJob.getStatus(), newJob.getStatus())) {
 
             String jobListByOldStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(oldJob.getStatus());
-            // redisService.lrem(jobListByOldStatusKey, jobId);
 
             String jobListByNewStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(newJob.getStatus());
-            // redisService.rpush(jobListByNewStatusKey, jobId);
 
             redisService.lmove(jobListByOldStatusKey, jobListByNewStatusKey, jobId);
-
         }
 
         return redisService.get(jobKey, Job.class);
-
     }
 
     @Override
@@ -353,7 +352,7 @@ public class RedisJobPersistence implements JobPersistence {
 
     @Override
     public String getPersistenceName() {
-        return RedisPersistenceConfig.NAME;
+        return StaticRedisConfig.NAME;
     }
 
 }

@@ -4,6 +4,11 @@ import java.util.Arrays;
 
 import org.jboss.logging.Logger;
 
+/**
+ * Set of keys used by the redis persistence implementation
+ * 
+ * @author coodoo GmbH (coodoo.io)
+ */
 public enum RedisKey {
 
     /**
@@ -17,12 +22,16 @@ public enum RedisKey {
     INC_JOB_ID("jobIndex"),
 
     /**
-     * Store the job with attributes as JSON job:<id>
+     * Store the job with attributes as JSON
+     * 
+     * job:<jobId>
      */
     JOB_BY_ID("job:%s"),
 
     /**
-     * Store the ID of the job with the given workername job:workername:<workerClassName>
+     * Store the ID of the job with the given workername
+     * 
+     * job:workername:<workerClassName>
      */
     JOB_BY_WORKER_NAME("job:workername:%s"),
 
@@ -70,6 +79,16 @@ public enum RedisKey {
      * list:job:<jobId>:exe
      */
     LIST_OF_EXECUTION_BY_JOB("list:job:%s:exe"),
+
+    /**
+     * Queue to store new created executions
+     */
+    EXECUTION_QUEUE("queue:exe"),
+
+    /**
+     * Queue to store new created executions
+     */
+    PRIORITY_EXECUTION_QUEUE("queue:exe:priority"),
 
     /**
      * List of all executionId by status

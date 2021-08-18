@@ -28,21 +28,20 @@ import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 import redis.clients.jedis.Transaction;
 
+/**
+ * @author coodoo GmbH (coodoo.io)
+ */
 @Dependent
-public class RedisController {
+public class RedisService {
 
-    private static final Logger log = LoggerFactory.getLogger(RedisController.class);
+    private static final Logger log = LoggerFactory.getLogger(RedisService.class);
 
     private final ObjectMapper jsonObjectMapper = new ObjectMapper();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostConstruct
     private void init() {
         jsonObjectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         jsonObjectMapper.registerModule(new JavaTimeModule());
-
-        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        objectMapper.registerModule(new JavaTimeModule());
     }
 
     @Inject
@@ -89,7 +88,7 @@ public class RedisController {
                 }
 
                 try {
-                    return objectMapper.convertValue(value, clazz);
+                    return jsonObjectMapper.convertValue(value, clazz);
                 } catch (IllegalArgumentException e) {
                     log.error("String could not deserialize object to  " + clazz + ": " + value, e);
                 }
@@ -116,7 +115,7 @@ public class RedisController {
                 }
 
                 try {
-                    return objectMapper.convertValue(map, clazz);
+                    return jsonObjectMapper.convertValue(map, clazz);
                 } catch (IllegalArgumentException e) {
                     log.error("MAP could not deserialize object to  " + clazz + ": " + map, e);
                 }
@@ -218,7 +217,7 @@ public class RedisController {
             @Override
             public Boolean perform(Jedis jedis) {
                 try {
-                    jedis.hset(key, objectMapper.convertValue(data, new TypeReference<Map<String, String>>() {}));
+                    jedis.hset(key, jsonObjectMapper.convertValue(data, new TypeReference<Map<String, String>>() {}));
 
                 } catch (IllegalArgumentException e) {
                     log.error("Data could not be serialized to MAP: " + data, e);
@@ -392,17 +391,17 @@ public class RedisController {
         });
     }
 
-    // public Boolean flushAll() {
-    // log.info("Redis flush all..");
-    // return jedisExecution.execute(new JedisOperation<Boolean>() {
-    // @SuppressWarnings("unchecked")
-    // @Override
-    // public Boolean perform(Jedis jedis) {
-    // jedis.flushAll();
-    // return true;
-    // }
-    // });
-    // }
+    public Boolean flushAll() {
+        log.info("Redis flush all..");
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+                jedis.flushAll();
+                return true;
+            }
+        });
+    }
 
     /**
      * Enables the deletion of entire key areas using wildcards in the key (*)
