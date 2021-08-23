@@ -1,9 +1,5 @@
 package io.coodoo.workhorse.persistence.redis.control;
 
-import java.util.Arrays;
-
-import org.jboss.logging.Logger;
-
 /**
  * Set of keys used by the redis persistence implementation
  * 
@@ -160,8 +156,6 @@ public enum RedisKey {
      */
     WORKHORSE_LOG_LIST("list:workhorselog");
 
-    private static Logger log = Logger.getLogger(RedisKey.class);
-
     String query;
 
     private RedisKey(String query) {
@@ -172,30 +166,6 @@ public enum RedisKey {
         if (params == null || params.length == 0) {
             return query;
         }
-
-        if (countMatches(this.query, "%s") != params.length) {
-
-            String message = "The number of parameters passed does not match the number of placeholders in the query! " + this.name() + " Query: " + this.query
-                            + " -> parameter: " + Arrays.toString(params);
-            log.error(message);
-        }
         return String.format(query, params);
-    }
-
-    public static int countMatches(String str, String sub) {
-        if (isEmpty(str) || isEmpty(sub)) {
-            return 0;
-        }
-        int count = 0;
-        int idx = 0;
-        while ((idx = str.indexOf(sub, idx)) != -1) {
-            count++;
-            idx += sub.length();
-        }
-        return count;
-    }
-
-    public static boolean isEmpty(String str) {
-        return str == null || str.length() == 0;
     }
 }

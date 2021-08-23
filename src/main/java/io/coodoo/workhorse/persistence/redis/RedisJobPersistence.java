@@ -1,10 +1,14 @@
-package io.coodoo.workhorse.persistence.redis.entity;
+package io.coodoo.workhorse.persistence.redis;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -16,12 +20,12 @@ import io.coodoo.workhorse.persistence.interfaces.JobPersistence;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
-import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
 import io.coodoo.workhorse.persistence.redis.control.JedisOperation;
+import io.coodoo.workhorse.persistence.redis.control.RedisClient;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
-import io.coodoo.workhorse.persistence.redis.control.RedisService;
+import io.coodoo.workhorse.util.CollectionListing;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
@@ -34,10 +38,12 @@ import redis.clients.jedis.Response;
 public class RedisJobPersistence implements JobPersistence {
 
     @Inject
-    RedisService redisService;
+    RedisClient redisService;
 
     @Inject
     JedisExecution jedisExecution;
+
+    private Map<Long, Job> cachedJobs = new ConcurrentHashMap<>();
 
     @Override
     public Job get(Long jobId) {
@@ -122,25 +128,158 @@ public class RedisJobPersistence implements JobPersistence {
         return resultJobs;
     }
 
+    private static List<String> splitOr(String value) {
+        return Arrays.asList(value.split(escape(CollectionListing.OPERATOR_OR), -1));
+    }
+
+    private static List<String> splitSpace(String value) {
+        return Arrays.asList(value.split(" "));
+    }
+
+    /**
+     * Escapes all RegEx control characters for the usage like in {@link String#replaceAll(String, String)} or {@link String#split(String)}
+     * 
+     * @param value may containing some RegEx control characters like <code>|</code>, <code>?</code>, or <code>*</code>
+     * @return value with escaped RegEx control characters like <code>\\|</code>, <code>\\?</code>, or <code>\\*</code>
+     */
+    private static String escape(String value) {
+        return value.replaceAll("([\\\\\\.\\[\\{\\(\\*\\+\\?\\^\\$\\|])", "\\\\$1");
+    }
+
+    public static String removeQuotes(String value) {
+        return value.replaceAll("^\"|\"$", "");
+    }
+
     @Override
     public ListingResult<Job> getJobListing(ListingParameters listingParameters) {
 
         String redisKey = RedisKey.LIST_OF_JOB.getQuery();
 
-        long start = listingParameters.getIndex();
-        long end = listingParameters.getIndex() + listingParameters.getLimit() - 1;
-
-        List<Long> jobIds = redisService.lrange(redisKey, Long.class, start, end);
+        long size = 0;
 
         List<String> jobKeys = new ArrayList<>();
 
-        for (Long jobId : jobIds) {
+        if (listingParameters.getFilterAttributes().containsKey("name|description")) {
+            Set<String> setJobNameKeys =
+                            redisService.keys("*" + RedisKey.JOB_BY_NAME.getQuery(listingParameters.getFilterAttributes().get("name|description") + "*"));
+            Set<String> setJobWorkerNameKeys = redisService
+                            .keys("*" + RedisKey.JOB_BY_WORKER_NAME.getQuery(listingParameters.getFilterAttributes().get("name|description") + "*"));
+
+            Set<String> setOfKeys = new HashSet<>();
+            setOfKeys.addAll(setJobNameKeys);
+            setOfKeys.addAll(setJobWorkerNameKeys);
+
+            for (String jobNameKey : setOfKeys) {
+                Long jobId = redisService.get(jobNameKey, Long.class);
+                jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
+            }
+
+            size = jobKeys.size();
+            int end = (int) (size > listingParameters.getLimit() ? listingParameters.getLimit() : size);
+            jobKeys = jobKeys.subList(listingParameters.getIndex(), end);
+
+        } else if (listingParameters.getFilterAttributes().containsKey("id")) {
+            Long jobId = Long.valueOf(listingParameters.getFilterAttributes().get("id"));
+
             jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
+            size = jobKeys.size();
+
+        } else if (listingParameters.getFilterAttributes().containsKey("status")) {
+            String statusFilter = listingParameters.getFilterAttributes().get("status");
+            List<String> statusFilterList = new ArrayList<>();
+
+            if (statusFilter.contains(CollectionListing.OPERATOR_OR) || statusFilter.contains(CollectionListing.OPERATOR_OR_WORD)) {
+                // one attribute for many filter
+                statusFilterList = splitOr(statusFilter.replaceAll(escape(CollectionListing.OPERATOR_OR_WORD), CollectionListing.OPERATOR_OR));
+
+            } else {
+                statusFilterList.add(statusFilter);
+            }
+
+            List<String> jobListByStatusListKey = new ArrayList<>();
+            for (String status : statusFilterList) {
+                status = removeQuotes(status);
+                switch (status) {
+
+                    case "ACTIVE":
+                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.ACTIVE));
+                        break;
+                    case "INACTIVE":
+                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.INACTIVE));
+                        break;
+
+                    case "ERROR":
+                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.ERROR));
+                        break;
+
+                    case "NO_WORKER":
+                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.NO_WORKER));
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+
+            List<Long> jobIds = new ArrayList<>();
+            for (String statusLisKey : jobListByStatusListKey) {
+
+                List<Long> ids = redisService.lrange(statusLisKey, Long.class, 0, -1);
+
+                jobIds.addAll(ids);
+            }
+
+            for (Long jobId : jobIds) {
+                jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
+            }
+
+            size = jobKeys.size();
+            int end = (int) (size > listingParameters.getLimit() ? listingParameters.getLimit() : size);
+            jobKeys = jobKeys.subList(listingParameters.getIndex(), end);
+
+        } else if (listingParameters.getFilterAttributes().containsKey("tags")) {
+
+            String tagsFilter = listingParameters.getFilterAttributes().get("tags");
+            List<String> tags = splitSpace(tagsFilter);
+            List<Job> jobList = new ArrayList<>();
+
+            // ##### to outsource
+            Set<Long> jobIds = cachedJobs.keySet();
+            if (jobIds.isEmpty()) {
+                jobList = getAll();
+                for (Job job : jobList) {
+                    cachedJobs.put(job.getId(), job);
+                }
+            }
+
+            for (Long id : cachedJobs.keySet()) {
+
+                for (String tag : tags) {
+
+                    if (cachedJobs.get(id).getTags().contains(tag)) {
+                        jobKeys.add(RedisKey.JOB_BY_ID.getQuery(id));
+                    }
+                }
+            }
+
+            size = jobKeys.size();
+            int end = (int) (size > listingParameters.getLimit() ? listingParameters.getLimit() : size);
+            jobKeys = jobKeys.subList(listingParameters.getIndex(), end);
+
+        } else {
+
+            long start = listingParameters.getIndex();
+            long end = listingParameters.getIndex() + listingParameters.getLimit() - 1;
+            List<Long> jobIds = redisService.lrange(redisKey, Long.class, start, end);
+
+            for (Long jobId : jobIds) {
+                jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
+            }
+            size = redisService.llen(redisKey);
         }
 
         List<Job> result = redisService.get(jobKeys, Job.class);
 
-        long size = redisService.llen(redisKey);
         Metadata metadata = new Metadata(size, listingParameters);
 
         return new ListingResult<Job>(result, metadata);
@@ -199,7 +338,7 @@ public class RedisJobPersistence implements JobPersistence {
 
         Map<Long, Response<String>> responseMap = new HashMap<>();
 
-        long size = jedisExecution.execute(new JedisOperation<Long>() {
+        jedisExecution.execute(new JedisOperation<Long>() {
 
             @SuppressWarnings("unchecked")
             @Override
@@ -271,8 +410,8 @@ public class RedisJobPersistence implements JobPersistence {
     public Job persist(Job job) {
         Long id = redisService.incr(RedisKey.INC_JOB_ID.getQuery());
         String jobKey = RedisKey.JOB_BY_ID.getQuery(id);
-        String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(job.getName());
-        String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(job.getWorkerClassName());
+        String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(job.getName().toLowerCase());
+        String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(job.getWorkerClassName().toLowerCase());
         String jobListKey = RedisKey.LIST_OF_JOB.getQuery();
         String jobListByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(job.getStatus());
 

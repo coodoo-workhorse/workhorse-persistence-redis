@@ -1,4 +1,4 @@
-package io.coodoo.workhorse.persistence.redis.entity;
+package io.coodoo.workhorse.persistence.redis;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -9,7 +9,7 @@ import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
-import io.coodoo.workhorse.persistence.redis.control.RedisService;
+import io.coodoo.workhorse.persistence.redis.control.RedisClient;
 
 /**
  * @author coodoo GmbH (coodoo.io)
@@ -21,11 +21,33 @@ public class RedisConfigPersistence implements ConfigPersistence {
     JedisExecution jedisExecution;
 
     @Inject
-    RedisService redisService;
+    RedisClient redisService;
 
     @Override
     public WorkhorseConfig get() {
-        return redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), RedisPersistenceConfig.class);
+
+        RedisPersistenceConfig redisPersistenceConfig = redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), RedisPersistenceConfig.class);
+
+        if (redisPersistenceConfig == null) {
+            return null;
+        }
+        WorkhorseConfig workhorseConfig = new RedisPersistenceConfig();
+        workhorseConfig.setTimeZone(redisPersistenceConfig.getTimeZone());
+        workhorseConfig.setBufferMax(redisPersistenceConfig.getBufferMax());
+        workhorseConfig.setBufferMin(redisPersistenceConfig.getBufferMin());
+        workhorseConfig.setBufferPollInterval(redisPersistenceConfig.getBufferPollInterval());
+        workhorseConfig.setBufferPushFallbackPollInterval(redisPersistenceConfig.getBufferPushFallbackPollInterval());
+        workhorseConfig.setExecutionTimeout(redisPersistenceConfig.getExecutionTimeout());
+        workhorseConfig.setExecutionTimeoutStatus(redisPersistenceConfig.getExecutionTimeoutStatus());
+        workhorseConfig.setMaxExecutionSummaryLength(redisPersistenceConfig.getMaxExecutionSummaryLength());
+        workhorseConfig.setMinutesUntilCleanup(redisPersistenceConfig.getMinutesUntilCleanup());
+        workhorseConfig.setLogChange(redisPersistenceConfig.getLogChange());
+        workhorseConfig.setLogTimeFormat(redisPersistenceConfig.getLogTimeFormat());
+        workhorseConfig.setLogInfoMarker(redisPersistenceConfig.getLogInfoMarker());
+        workhorseConfig.setLogWarnMarker(redisPersistenceConfig.getLogWarnMarker());
+        workhorseConfig.setLogErrorMarker(redisPersistenceConfig.getLogErrorMarker());
+
+        return workhorseConfig;
     }
 
     @Override
@@ -47,6 +69,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
         redisPersisitenceConfig.setLogWarnMarker(workhorseConfig.getLogWarnMarker());
         redisPersisitenceConfig.setLogErrorMarker(workhorseConfig.getLogErrorMarker());
         redisService.set(RedisKey.JOB_ENGINE_CONFIG.getQuery(), redisPersisitenceConfig);
+
         return get();
     }
 

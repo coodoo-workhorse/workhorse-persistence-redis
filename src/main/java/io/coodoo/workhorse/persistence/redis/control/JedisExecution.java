@@ -31,7 +31,7 @@ public class JedisExecution {
     }
 
     public void init() {
-        log.info("Creating Redis-Pool mit HOST: " + StaticRedisConfig.REDIS_HOST + ": " + StaticRedisConfig.REDIS_PORT);
+        log.info("Creating Redis-Pool mit HOST: {}: {}  ", StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT);
 
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(StaticRedisConfig.MAX_TOTAL);

@@ -20,6 +20,7 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
     protected int maxIdle = 100;
     protected int minIdle = 50;
 
+    protected String persistenceVersion = null;
     protected String version = null;
     {
         try {

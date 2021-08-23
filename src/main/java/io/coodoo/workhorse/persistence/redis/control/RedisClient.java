@@ -6,7 +6,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.Dependent;
@@ -32,9 +31,9 @@ import redis.clients.jedis.Transaction;
  * @author coodoo GmbH (coodoo.io)
  */
 @Dependent
-public class RedisService {
+public class RedisClient {
 
-    private static final Logger log = LoggerFactory.getLogger(RedisService.class);
+    private static final Logger log = LoggerFactory.getLogger(RedisClient.class);
 
     private final ObjectMapper jsonObjectMapper = new ObjectMapper();
 
@@ -53,6 +52,16 @@ public class RedisService {
             @Override
             public Long perform(Jedis jedis) {
                 return jedis.incr(key);
+            }
+        });
+    }
+
+    public Set<String> keys(String pattern) {
+        return jedisExecution.execute(new JedisOperation<Set<String>>() {
+
+            @SuppressWarnings("unchecked")
+            public Set<String> perform(Jedis jedis) {
+                return jedis.keys(pattern);
             }
         });
     }
@@ -186,7 +195,7 @@ public class RedisService {
                     }
                 }
                 return datas;
-            };
+            }
         });
 
         log.info("Redis Call: {} {}ms", keys, System.currentTimeMillis() - t1);
@@ -221,23 +230,6 @@ public class RedisService {
 
                 } catch (IllegalArgumentException e) {
                     log.error("Data could not be serialized to MAP: " + data, e);
-                    return false;
-                }
-                return true;
-            }
-        });
-    }
-
-    public Boolean setex(String key, Integer expirationInMinutes, Object data) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                try {
-                    jedis.setex(key, new Long(TimeUnit.MINUTES.toSeconds(expirationInMinutes)), jsonObjectMapper.writeValueAsString(data));
-
-                } catch (JsonProcessingException e) {
-                    log.error("Data could not be serialized to JSON: " + data, e);
                     return false;
                 }
                 return true;
@@ -339,7 +331,7 @@ public class RedisService {
             @SuppressWarnings("unchecked")
             @Override
             public Boolean perform(Jedis jedis) {
-                return jedis.srem(key, members) == 1 ? true : false;
+                return jedis.srem(key, members) == 1;
             }
         });
     }
@@ -361,7 +353,7 @@ public class RedisService {
      * Deletes the key from the Redis store
      * 
      * <br>
-     * <strong>With wildcard (*) {@link RedisService # deleteKeys (String) deleteKeys} should be used!</strong>
+     * <strong>With wildcard (*) {@link RedisClient # deleteKeys (String) deleteKeys} should be used!</strong>
      */
     public Boolean del(String key) {
         return jedisExecution.execute(new JedisOperation<Boolean>() {
@@ -424,7 +416,7 @@ public class RedisService {
                     matchingKeys.addAll(keys);
                 } while (!nextCursor.equals("0"));
 
-                if (matchingKeys.size() != 0) {
+                if (!matchingKeys.isEmpty()) {
                     jedis.del(matchingKeys.toArray(new String[matchingKeys.size()]));
                 }
                 return true;
@@ -457,7 +449,7 @@ public class RedisService {
     }
 
     public <T> Long rpush(String key, List<T> objects) {
-        return (Long) jedisExecution.execute(new JedisOperation<Long>() {
+        return jedisExecution.execute(new JedisOperation<Long>() {
             @SuppressWarnings("unchecked")
             @Override
             public Long perform(Jedis jedis) {

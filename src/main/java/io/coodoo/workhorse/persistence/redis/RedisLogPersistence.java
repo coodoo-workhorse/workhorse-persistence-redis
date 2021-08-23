@@ -1,4 +1,4 @@
-package io.coodoo.workhorse.persistence.redis.entity;
+package io.coodoo.workhorse.persistence.redis;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,11 +11,10 @@ import io.coodoo.workhorse.persistence.interfaces.LogPersistence;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
-import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
-import io.coodoo.workhorse.persistence.redis.control.RedisService;
+import io.coodoo.workhorse.persistence.redis.control.RedisClient;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 
 /**
@@ -25,7 +24,7 @@ import io.coodoo.workhorse.util.WorkhorseUtil;
 public class RedisLogPersistence implements LogPersistence {
 
     @Inject
-    RedisService redisService;
+    RedisClient redisService;
 
     @Inject
     JedisExecution jedisExecution;
@@ -154,7 +153,6 @@ public class RedisLogPersistence implements LogPersistence {
 
     @Override
     public void connect(Object... params) {
-        // TODO Auto-generated method stub
 
     }
 

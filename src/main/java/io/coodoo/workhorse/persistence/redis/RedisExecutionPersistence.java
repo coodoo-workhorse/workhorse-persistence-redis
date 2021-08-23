@@ -1,4 +1,4 @@
-package io.coodoo.workhorse.persistence.redis.entity;
+package io.coodoo.workhorse.persistence.redis;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,12 +26,11 @@ import io.coodoo.workhorse.persistence.interfaces.ExecutionPersistence;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
-import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
 import io.coodoo.workhorse.persistence.redis.control.JedisOperation;
+import io.coodoo.workhorse.persistence.redis.control.RedisClient;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
-import io.coodoo.workhorse.persistence.redis.control.RedisService;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
@@ -46,7 +45,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     private static Logger log = LoggerFactory.getLogger(RedisExecutionPersistence.class);
 
     @Inject
-    RedisService redisService;
+    RedisClient redisService;
 
     @Inject
     JedisExecution jedisExecution;
@@ -129,7 +128,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         long size = redisService.llen(redisKey);
         Metadata metadata = new Metadata(size, listingParameters);
 
-        return new ListingResult<Execution>(result, metadata);
+        return new ListingResult<>(result, metadata);
     }
 
     @Override
@@ -471,7 +470,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
             List<Long> executionIds = redisService.lrange(listOfExecutionIdInStatus, Long.class, 0, -1);
 
-            if (executionIds != null && executionIds.size() > 0) {
+            if (executionIds != null && !executionIds.isEmpty()) {
                 String jobKey = RedisKey.JOB_BY_ID.getQuery(jobId);
                 Job job = redisService.get(jobKey, Job.class);
                 result.add(new JobExecutionStatusSummary(status, Long.valueOf(executionIds.size()), job));
@@ -550,8 +549,8 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         StringBuilder bufferlog = new StringBuilder();
 
         // append the logs of the list to build one string
-        for (String log : executionLogs) {
-            bufferlog.append(log);
+        for (String exelog : executionLogs) {
+            bufferlog.append(exelog);
             bufferlog.append(System.lineSeparator());
         }
 
@@ -595,10 +594,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     }
 
     @Override
-    public void connect(Object... params) {
-        // TODO Auto-generated method stub
-
-    }
+    public void connect(Object... params) {}
 
     @Override
     public String getPersistenceName() {
