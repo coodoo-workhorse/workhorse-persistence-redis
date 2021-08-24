@@ -26,7 +26,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
     @Override
     public WorkhorseConfig get() {
 
-        RedisPersistenceConfig redisPersistenceConfig = redisService.get(RedisKey.JOB_ENGINE_CONFIG.getQuery(), RedisPersistenceConfig.class);
+        RedisPersistenceConfig redisPersistenceConfig = redisService.get(RedisKey.WORKHORSE_CONFIG.getQuery(), RedisPersistenceConfig.class);
 
         if (redisPersistenceConfig == null) {
             return null;
@@ -68,7 +68,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
         redisPersisitenceConfig.setLogInfoMarker(workhorseConfig.getLogInfoMarker());
         redisPersisitenceConfig.setLogWarnMarker(workhorseConfig.getLogWarnMarker());
         redisPersisitenceConfig.setLogErrorMarker(workhorseConfig.getLogErrorMarker());
-        redisService.set(RedisKey.JOB_ENGINE_CONFIG.getQuery(), redisPersisitenceConfig);
+        redisService.set(RedisKey.WORKHORSE_CONFIG.getQuery(), redisPersisitenceConfig);
 
         return get();
     }

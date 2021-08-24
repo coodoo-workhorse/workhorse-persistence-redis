@@ -1,17 +1,15 @@
 package io.coodoo.workhorse.persistence.redis;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.coodoo.workhorse.core.entity.Job;
 import io.coodoo.workhorse.core.entity.JobStatus;
@@ -19,17 +17,11 @@ import io.coodoo.workhorse.core.entity.JobStatusCount;
 import io.coodoo.workhorse.persistence.interfaces.JobPersistence;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
-import io.coodoo.workhorse.persistence.interfaces.listing.Metadata;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
-import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
-import io.coodoo.workhorse.persistence.redis.control.JedisOperation;
 import io.coodoo.workhorse.persistence.redis.control.RedisClient;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
 import io.coodoo.workhorse.util.CollectionListing;
 import io.coodoo.workhorse.util.WorkhorseUtil;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.Response;
 
 /**
  * @author coodoo GmbH (coodoo.io)
@@ -37,46 +29,38 @@ import redis.clients.jedis.Response;
 @ApplicationScoped
 public class RedisJobPersistence implements JobPersistence {
 
-    @Inject
-    RedisClient redisService;
+    private static Logger log = LoggerFactory.getLogger(RedisJobPersistence.class);
 
     @Inject
-    JedisExecution jedisExecution;
-
-    private Map<Long, Job> cachedJobs = new ConcurrentHashMap<>();
+    RedisClient redisClient;
 
     @Override
     public Job get(Long jobId) {
         String redisKey = RedisKey.JOB_BY_ID.getQuery(jobId);
-        return redisService.get(redisKey, Job.class);
+        return redisClient.get(redisKey, Job.class);
     }
 
     @Override
     public Job getByName(String jobName) {
 
-        // User the map of job's name on job's ID to find the job
         String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(jobName);
-
-        Long jobId = redisService.get(jobNameKey, Long.class);
+        Long jobId = redisClient.get(jobNameKey, Long.class);
 
         if (jobId != null) {
             String jobKey = RedisKey.JOB_BY_ID.getQuery(jobId);
-            Job job = redisService.get(jobKey, Job.class);
-            if (jobName.equals(job.getName())) {
+            Job job = redisClient.get(jobKey, Job.class);
+            if (job != null && jobName.equals(job.getName())) {
                 return job;
             }
         }
 
-        // Get all the jobs and take the ones that have the wanted name
-        Map<Long, Response<String>> responseMap = getAllJobsAsRedisResponse();
+        List<Job> jobs = getAll();
 
-        for (Response<String> response : responseMap.values()) {
-            Job job = WorkhorseUtil.jsonToParameters(response.get(), Job.class);
-
+        for (Job job : jobs) {
             if (jobName.equals(job.getName())) {
+                redisClient.set(jobNameKey, job);
                 return job;
             }
-
         }
 
         return null;
@@ -86,29 +70,24 @@ public class RedisJobPersistence implements JobPersistence {
     @Override
     public Job getByWorkerClassName(String workerClassName) {
 
-        // Use the map of worker class name on job's ID to find the job
         String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(workerClassName);
-
-        Long jobId = redisService.get(workerNameKey, Long.class);
+        Long jobId = redisClient.get(workerNameKey, Long.class);
 
         if (jobId != null) {
             String jobKey = RedisKey.JOB_BY_ID.getQuery(jobId);
-            Job job = redisService.get(jobKey, Job.class);
-            if (workerClassName.equals(job.getWorkerClassName())) {
+            Job job = redisClient.get(jobKey, Job.class);
+            if (job != null && workerClassName.equals(job.getWorkerClassName())) {
                 return job;
             }
         }
 
-        // Get all the jobs and take the ones that have the wanted worker class name
-        Map<Long, Response<String>> responseMap = getAllJobsAsRedisResponse();
+        List<Job> jobs = getAll();
 
-        for (Response<String> response : responseMap.values()) {
-            Job job = WorkhorseUtil.jsonToParameters(response.get(), Job.class);
-
+        for (Job job : jobs) {
             if (workerClassName.equals(job.getWorkerClassName())) {
+                redisClient.set(workerNameKey, job);
                 return job;
             }
-
         }
 
         return null;
@@ -116,200 +95,57 @@ public class RedisJobPersistence implements JobPersistence {
 
     @Override
     public List<Job> getAll() {
-        List<Job> resultJobs = new ArrayList<>();
-        Map<Long, Response<String>> responseMap = getAllJobsAsRedisResponse();
 
-        for (Response<String> response : responseMap.values()) {
-            Job job = WorkhorseUtil.jsonToParameters(response.get(), Job.class);
+        String jobsListKey = RedisKey.LIST_OF_JOB.getQuery();
+        List<Long> jobIds = redisClient.lrange(jobsListKey, Long.class, 0, -1);
 
-            resultJobs.add(job);
+        List<String> jobKeys = new ArrayList<>();
+
+        for (Long id : jobIds) {
+            jobKeys.add(RedisKey.JOB_BY_ID.getQuery(id));
         }
 
-        return resultJobs;
-    }
-
-    private static List<String> splitOr(String value) {
-        return Arrays.asList(value.split(escape(CollectionListing.OPERATOR_OR), -1));
-    }
-
-    private static List<String> splitSpace(String value) {
-        return Arrays.asList(value.split(" "));
-    }
-
-    /**
-     * Escapes all RegEx control characters for the usage like in {@link String#replaceAll(String, String)} or {@link String#split(String)}
-     * 
-     * @param value may containing some RegEx control characters like <code>|</code>, <code>?</code>, or <code>*</code>
-     * @return value with escaped RegEx control characters like <code>\\|</code>, <code>\\?</code>, or <code>\\*</code>
-     */
-    private static String escape(String value) {
-        return value.replaceAll("([\\\\\\.\\[\\{\\(\\*\\+\\?\\^\\$\\|])", "\\\\$1");
-    }
-
-    public static String removeQuotes(String value) {
-        return value.replaceAll("^\"|\"$", "");
+        return redisClient.get(jobKeys, Job.class);
     }
 
     @Override
     public ListingResult<Job> getJobListing(ListingParameters listingParameters) {
 
-        String redisKey = RedisKey.LIST_OF_JOB.getQuery();
+        long startTime = System.currentTimeMillis();
+        Collection<Job> jobs = getAll();
+        long duration = System.currentTimeMillis() - startTime;
 
-        long size = 0;
+        log.info("cachedJobs loaded in: {} ms", duration);
 
-        List<String> jobKeys = new ArrayList<>();
-
-        if (listingParameters.getFilterAttributes().containsKey("name|description")) {
-            Set<String> setJobNameKeys =
-                            redisService.keys("*" + RedisKey.JOB_BY_NAME.getQuery(listingParameters.getFilterAttributes().get("name|description") + "*"));
-            Set<String> setJobWorkerNameKeys = redisService
-                            .keys("*" + RedisKey.JOB_BY_WORKER_NAME.getQuery(listingParameters.getFilterAttributes().get("name|description") + "*"));
-
-            Set<String> setOfKeys = new HashSet<>();
-            setOfKeys.addAll(setJobNameKeys);
-            setOfKeys.addAll(setJobWorkerNameKeys);
-
-            for (String jobNameKey : setOfKeys) {
-                Long jobId = redisService.get(jobNameKey, Long.class);
-                jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
-            }
-
-            size = jobKeys.size();
-            int end = (int) (size > listingParameters.getLimit() ? listingParameters.getLimit() : size);
-            jobKeys = jobKeys.subList(listingParameters.getIndex(), end);
-
-        } else if (listingParameters.getFilterAttributes().containsKey("id")) {
-            Long jobId = Long.valueOf(listingParameters.getFilterAttributes().get("id"));
-
-            jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
-            size = jobKeys.size();
-
-        } else if (listingParameters.getFilterAttributes().containsKey("status")) {
-            String statusFilter = listingParameters.getFilterAttributes().get("status");
-            List<String> statusFilterList = new ArrayList<>();
-
-            if (statusFilter.contains(CollectionListing.OPERATOR_OR) || statusFilter.contains(CollectionListing.OPERATOR_OR_WORD)) {
-                // one attribute for many filter
-                statusFilterList = splitOr(statusFilter.replaceAll(escape(CollectionListing.OPERATOR_OR_WORD), CollectionListing.OPERATOR_OR));
-
-            } else {
-                statusFilterList.add(statusFilter);
-            }
-
-            List<String> jobListByStatusListKey = new ArrayList<>();
-            for (String status : statusFilterList) {
-                status = removeQuotes(status);
-                switch (status) {
-
-                    case "ACTIVE":
-                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.ACTIVE));
-                        break;
-                    case "INACTIVE":
-                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.INACTIVE));
-                        break;
-
-                    case "ERROR":
-                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.ERROR));
-                        break;
-
-                    case "NO_WORKER":
-                        jobListByStatusListKey.add(RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.NO_WORKER));
-                        break;
-
-                    default:
-                        break;
-                }
-            }
-
-            List<Long> jobIds = new ArrayList<>();
-            for (String statusLisKey : jobListByStatusListKey) {
-
-                List<Long> ids = redisService.lrange(statusLisKey, Long.class, 0, -1);
-
-                jobIds.addAll(ids);
-            }
-
-            for (Long jobId : jobIds) {
-                jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
-            }
-
-            size = jobKeys.size();
-            int end = (int) (size > listingParameters.getLimit() ? listingParameters.getLimit() : size);
-            jobKeys = jobKeys.subList(listingParameters.getIndex(), end);
-
-        } else if (listingParameters.getFilterAttributes().containsKey("tags")) {
-
-            String tagsFilter = listingParameters.getFilterAttributes().get("tags");
-            List<String> tags = splitSpace(tagsFilter);
-            List<Job> jobList = new ArrayList<>();
-
-            // ##### to outsource
-            Set<Long> jobIds = cachedJobs.keySet();
-            if (jobIds.isEmpty()) {
-                jobList = getAll();
-                for (Job job : jobList) {
-                    cachedJobs.put(job.getId(), job);
-                }
-            }
-
-            for (Long id : cachedJobs.keySet()) {
-
-                for (String tag : tags) {
-
-                    if (cachedJobs.get(id).getTags().contains(tag)) {
-                        jobKeys.add(RedisKey.JOB_BY_ID.getQuery(id));
-                    }
-                }
-            }
-
-            size = jobKeys.size();
-            int end = (int) (size > listingParameters.getLimit() ? listingParameters.getLimit() : size);
-            jobKeys = jobKeys.subList(listingParameters.getIndex(), end);
-
-        } else {
-
-            long start = listingParameters.getIndex();
-            long end = listingParameters.getIndex() + listingParameters.getLimit() - 1;
-            List<Long> jobIds = redisService.lrange(redisKey, Long.class, start, end);
-
-            for (Long jobId : jobIds) {
-                jobKeys.add(RedisKey.JOB_BY_ID.getQuery(jobId));
-            }
-            size = redisService.llen(redisKey);
-        }
-
-        List<Job> result = redisService.get(jobKeys, Job.class);
-
-        Metadata metadata = new Metadata(size, listingParameters);
-
-        return new ListingResult<Job>(result, metadata);
+        return CollectionListing.getListingResult(jobs, Job.class, listingParameters);
     }
 
     @Override
     public List<Job> getAllByStatus(JobStatus jobStatus) {
 
         String jobListByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(jobStatus);
+        List<Long> jobIdsByStatus = redisClient.lrange(jobListByStatusKey, Long.class, 0, -1);
 
-        // Get all the jobs and take the ones that have the wanted status
-        List<Job> resultJobs = new ArrayList<>();
-        Map<Long, Response<String>> responseMap = new HashMap<Long, Response<String>>();
+        List<String> jobKeys = new ArrayList<>();
 
-        // use the list of job in the given status
-        List<Long> jobsByStatus = redisService.lrange(jobListByStatusKey, Long.class, 0, -1);
-
-        if (jobsByStatus != null && !jobsByStatus.isEmpty()) {
-            responseMap = getAllJobsAsRedisResponse(jobsByStatus);
-        } else {
-            responseMap = getAllJobsAsRedisResponse();
+        for (Long id : jobIdsByStatus) {
+            jobKeys.add(RedisKey.JOB_BY_ID.getQuery(id));
         }
 
-        for (Response<String> response : responseMap.values()) {
-            Job job = WorkhorseUtil.jsonToParameters(response.get(), Job.class);
+        List<Job> resultJobs = new ArrayList<>();
 
-            if (jobStatus.equals(job.getStatus())) {
-                resultJobs.add(job);
+        resultJobs.addAll(redisClient.get(jobKeys, Job.class));
+
+        if (resultJobs.isEmpty()) {
+
+            List<Job> jobs = getAll();
+
+            for (Job job : jobs) {
+                if (jobStatus.equals(job.getStatus())) {
+                    resultJobs.add(job);
+                    redisClient.lpush(jobListByStatusKey, job);
+                }
             }
-
         }
 
         return resultJobs;
@@ -319,11 +155,10 @@ public class RedisJobPersistence implements JobPersistence {
     public List<Job> getAllScheduled() {
 
         List<Job> resultJobs = new ArrayList<>();
-        Map<Long, Response<String>> responseMap = getAllJobsAsRedisResponse();
 
-        for (Response<String> response : responseMap.values()) {
+        List<Job> jobs = getAll();
 
-            Job job = WorkhorseUtil.jsonToParameters(response.get(), Job.class);
+        for (Job job : jobs) {
             if (job.getSchedule() != null && !job.getSchedule().isEmpty()) {
                 resultJobs.add(job);
             }
@@ -332,86 +167,38 @@ public class RedisJobPersistence implements JobPersistence {
         return resultJobs;
     }
 
-    private Map<Long, Response<String>> getAllJobsAsRedisResponse(List<Long> jobIds) {
-
-        List<Job> resultJobs = new ArrayList<>();
-
-        Map<Long, Response<String>> responseMap = new HashMap<>();
-
-        jedisExecution.execute(new JedisOperation<Long>() {
-
-            @SuppressWarnings("unchecked")
-            @Override
-            public Long perform(Jedis jedis) {
-                long length = 0;
-                Pipeline pipeline = jedis.pipelined();
-
-                for (Long jobId : jobIds) {
-                    String jobKey = RedisKey.JOB_BY_ID.getQuery(jobId);
-
-                    Response<String> foundJob = pipeline.get(jobKey);
-                    responseMap.put(jobId, foundJob);
-                    length++;
-                }
-
-                pipeline.sync();
-                return length;
-            }
-
-        });
-
-        for (Response<String> response : responseMap.values()) {
-            Job job = WorkhorseUtil.jsonToParameters(response.get(), Job.class);
-            resultJobs.add(job);
-        }
-
-        return responseMap;
-    }
-
-    private Map<Long, Response<String>> getAllJobsAsRedisResponse() {
-
-        String jobsListKey = RedisKey.LIST_OF_JOB.getQuery();
-        List<Long> jobIds = redisService.lrange(jobsListKey, Long.class, 0, -1);
-
-        return getAllJobsAsRedisResponse(jobIds);
-    }
-
     @Override
     public JobStatusCount getJobStatusCount() {
 
-        String activeJobKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.ACTIVE);
-        long countActive = redisService.llen(activeJobKey);
+        long countActive = countByStatus(JobStatus.ACTIVE);
 
-        String inactiveJobKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.INACTIVE);
-        long countInactive = redisService.llen(inactiveJobKey);
+        long countInactive = countByStatus(JobStatus.INACTIVE);
 
-        String errorJobKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.ERROR);
-        long countError = redisService.llen(errorJobKey);
+        long countError = countByStatus(JobStatus.ERROR);
 
-        String noWorkerJobKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(JobStatus.NO_WORKER);
-        long countNoWorker = redisService.llen(noWorkerJobKey);
+        long countNoWorker = countByStatus(JobStatus.NO_WORKER);
 
         return new JobStatusCount(countActive, countInactive, countNoWorker, countError);
     }
 
     @Override
     public Long count() {
-        // TODO Auto-generated method stub
-        return null;
+        String jobsListKey = RedisKey.LIST_OF_JOB.getQuery();
+        return redisClient.llen(jobsListKey);
     }
 
     @Override
     public Long countByStatus(JobStatus jobStatus) {
-        // TODO Auto-generated method stub
-        return null;
+        String jobsByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(jobStatus);
+        return redisClient.llen(jobsByStatusKey);
     }
 
     @Override
     public Job persist(Job job) {
-        Long id = redisService.incr(RedisKey.INC_JOB_ID.getQuery());
+        Long id = redisClient.incr(RedisKey.INC_JOB_ID.getQuery());
         String jobKey = RedisKey.JOB_BY_ID.getQuery(id);
-        String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(job.getName().toLowerCase());
-        String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(job.getWorkerClassName().toLowerCase());
+        String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(job.getName());
+        String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(job.getWorkerClassName());
         String jobListKey = RedisKey.LIST_OF_JOB.getQuery();
         String jobListByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(job.getStatus());
 
@@ -419,19 +206,19 @@ public class RedisJobPersistence implements JobPersistence {
         job.setCreatedAt(WorkhorseUtil.timestamp());
 
         // add the job as JSON
-        redisService.set(jobKey, job);
+        redisClient.set(jobKey, job);
 
         // add the ID of the job in to the job's name
-        redisService.set(jobNameKey, id);
+        redisClient.set(jobNameKey, id);
 
         // add the ID of the job in to the workername
-        redisService.set(workerNameKey, id);
+        redisClient.set(workerNameKey, id);
 
         // add the ID of the job in the list of jobs
-        redisService.lpush(jobListKey, id);
+        redisClient.lpush(jobListKey, id);
 
         // add the ID of the job to the list of job on the given status
-        redisService.lpush(jobListByStatusKey, id);
+        redisClient.lpush(jobListByStatusKey, id);
 
         return job;
     }
@@ -444,27 +231,27 @@ public class RedisJobPersistence implements JobPersistence {
 
         String jobKey = RedisKey.JOB_BY_ID.getQuery(newJob.getId());
 
-        Job oldJob = redisService.get(jobKey, Job.class);
+        Job oldJob = redisClient.get(jobKey, Job.class);
 
         newJob.setUpdatedAt(WorkhorseUtil.timestamp());
-        redisService.set(jobKey, newJob);
+        redisClient.set(jobKey, newJob);
 
         if (!Objects.equals(oldJob.getName(), newJob.getName())) {
 
             String oldJobNameKey = RedisKey.JOB_BY_NAME.getQuery(oldJob.getName());
-            redisService.del(oldJobNameKey);
+            redisClient.del(oldJobNameKey);
 
             String newJobNameKey = RedisKey.JOB_BY_NAME.getQuery(newJob.getName());
-            redisService.set(newJobNameKey, jobId);
+            redisClient.set(newJobNameKey, jobId);
         }
 
         if (!Objects.equals(oldJob.getWorkerClassName(), newJob.getWorkerClassName())) {
 
             String oldWorkerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(oldJob.getWorkerClassName());
-            redisService.del(oldWorkerNameKey);
+            redisClient.del(oldWorkerNameKey);
 
             String newWorkerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(newJob.getWorkerClassName());
-            redisService.set(newWorkerNameKey, jobId);
+            redisClient.set(newWorkerNameKey, jobId);
         }
 
         if (!Objects.equals(oldJob.getStatus(), newJob.getStatus())) {
@@ -473,21 +260,76 @@ public class RedisJobPersistence implements JobPersistence {
 
             String jobListByNewStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(newJob.getStatus());
 
-            redisService.lmove(jobListByOldStatusKey, jobListByNewStatusKey, jobId);
+            redisClient.lmove(jobListByOldStatusKey, jobListByNewStatusKey, jobId);
         }
 
-        return redisService.get(jobKey, Job.class);
+        return redisClient.get(jobKey, Job.class);
     }
 
     @Override
     public void deleteJob(Long jobId) {
 
+        String jobKey = RedisKey.JOB_BY_ID.getQuery(jobId);
+        Job job = redisClient.get(jobKey, Job.class);
+
+        String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(job.getName());
+        String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(job.getWorkerClassName());
+        String jobListKey = RedisKey.LIST_OF_JOB.getQuery();
+        String jobListByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(job.getStatus());
+
+        deleteJobsLog(jobId);
+
+        // remove the job from the list of job in the current status
+        redisClient.lrem(jobListByStatusKey, jobId);
+
+        // remove the job from the global list of job
+        redisClient.lrem(jobListKey, jobId);
+
+        // delete the index on the name of the job
+        redisClient.del(jobNameKey);
+
+        // delete the index on the name of the worker class of the job
+        redisClient.del(workerNameKey);
+
+        redisClient.del(jobKey);
+
+        // delete all keys matching the pattern of the key of this job
+        redisClient.deleteKeys(jobKey);
+    }
+
+    protected int deleteJobsLog(Long jobId) {
+
+        String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
+
+        String workhorseLogByJobKey = RedisKey.LIST_OF_WORKHORSE_LOG_BY_JOB.getQuery(jobId);
+
+        List<Long> workhorseLogIds = redisClient.lrange(workhorseLogByJobKey, Long.class, 0, -1);
+
+        List<String> executionIdKeys = new ArrayList<>();
+        for (Long workhorseLogId : workhorseLogIds) {
+
+            String workhorseLogKey = RedisKey.WORKHORSE_LOG_BY_ID.getQuery(workhorseLogId);
+            // add the redis key of the workhorse log to the list of keys to delete
+            executionIdKeys.add(workhorseLogKey);
+
+            // remove the ID of the log in the list of workhorse IDs of the given jobId
+            redisClient.lrem(workhorseLogByJobKey, workhorseLogId);
+
+            // remove the ID of the log in the global list of IDs
+            redisClient.lrem(workhorseLogListKey, workhorseLogId);
+
+            // Delete the workhorse Log
+            redisClient.del(workhorseLogKey);
+        }
+
+        // delete the key of the list of workhorse IDs of the given jobId
+        redisClient.del(workhorseLogByJobKey);
+
+        return 0;
     }
 
     @Override
-    public void connect(Object... params) {
-        return;
-    }
+    public void connect(Object... params) {}
 
     @Override
     public String getPersistenceName() {

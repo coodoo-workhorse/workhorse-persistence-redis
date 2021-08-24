@@ -2,7 +2,6 @@ package io.coodoo.workhorse.persistence.redis.control;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Destroyed;
-import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
 
 import org.slf4j.Logger;
@@ -24,11 +23,11 @@ public class JedisExecution {
 
     private JedisPool jedisPool;
 
-    public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
-        if (jedisPool == null) {
-            init();
-        }
-    }
+    // public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
+    // if (jedisPool == null) {
+    // init();
+    // }
+    // }
 
     public void init() {
         log.info("Creating Redis-Pool mit HOST: {}: {}  ", StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT);

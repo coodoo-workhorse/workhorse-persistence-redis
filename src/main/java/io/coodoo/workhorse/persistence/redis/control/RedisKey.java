@@ -9,152 +9,164 @@ public enum RedisKey {
 
     /**
      * Store the configurations of the job engine
+     * 
+     * workhorse:config
      */
-    JOB_ENGINE_CONFIG("job:config"),
+    WORKHORSE_CONFIG("w:c"),
 
     /**
      * Value to use as ID for Job.
-     */
-    INC_JOB_ID("jobIndex"),
-
-    /**
-     * Store the job with attributes as JSON
      * 
-     * job:<jobId>
+     * workhorse:job:index
      */
-    JOB_BY_ID("job:%s"),
-
-    /**
-     * Store the ID of the job with the given workername
-     * 
-     * job:workername:<workerClassName>
-     */
-    JOB_BY_WORKER_NAME("job:workername:%s"),
-
-    /**
-     * Store the ID of the job with the given name
-     * 
-     * job:name:<jobName>
-     */
-    JOB_BY_NAME("job:name:%s"),
+    INC_JOB_ID("w:j:i"),
 
     /**
      * List of IDs of all jobs
      */
-    LIST_OF_JOB("list:job"),
+    LIST_OF_JOB("w:j:l"),
+
+    /**
+     * Store the job with attributes as JSON
+     * 
+     * workhorse:job:<jobId>
+     */
+    JOB_BY_ID("w:j:%s"),
+
+    /**
+     * Store the ID of the job with the given workername
+     * 
+     * workhorse:job:workername:<workerClassName>
+     */
+    JOB_BY_WORKER_NAME("w:j:wn:%s"),
+
+    /**
+     * Store the ID of the job with the given name
+     * 
+     * workhorse:job:name:<jobName>
+     */
+    JOB_BY_NAME("w:j:n:%s"),
 
     /**
      * List of jobs by status
      * 
-     * list:job:<JobStatus>
+     * workhorse:job:status:<JobStatus>:list
      */
-    LIST_OF_JOB_BY_STATUS("list:job:%s"),
+    LIST_OF_JOB_BY_STATUS("w:j:s:%s:l"),
 
     // KEYS FOR EXECUTION
 
     /**
      * Value to use as ID for execution.
+     * 
+     * workhorse:execution:index
      */
-    INC_EXECUTION_ID("executionIndex"),
+    INC_EXECUTION_ID("w:j:e:i"),
 
     /**
      * Store the execution with all attributes as JSON
      * 
-     * exe:<executionId>
+     * workhorse:job:<JobId>:execution:<executionId>
      */
-    EXECUTION_BY_ID("exe:%s"),
+    EXECUTION_BY_ID("w:j:%s:e:%s"),
 
     /**
-     * Store the executionId associated with the given parameterhash paramHash:<parametersHash>:exe
+     * Store the executionId associated with the given parameterhash
+     * 
+     * workhorse:job:<JobId>:execution:paramHash:<parametersHash>
      */
-    EXECUTION_BY_PARAMETER_HASH("paramHash:%s:exe"),
+    EXECUTION_BY_PARAMETER_HASH("w:j:%s:e:p:%s"),
 
     /**
      * List of all executionId by JobId
      * 
-     * list:job:<jobId>:exe
+     * workhorse:job:<JobId>:execution:list
      */
-    LIST_OF_EXECUTION_BY_JOB("list:job:%s:exe"),
+    LIST_OF_EXECUTION_BY_JOB("w:j:%s:e:l"),
 
     /**
      * Queue to store new created executions
      */
-    EXECUTION_QUEUE("queue:exe"),
+    // EXECUTION_QUEUE("queue:exe"),
 
-    /**
-     * Queue to store new created executions
-     */
-    PRIORITY_EXECUTION_QUEUE("queue:exe:priority"),
+    // /**
+    // * Queue to store new created executions
+    // */
+    // PRIORITY_EXECUTION_QUEUE("queue:exe:priority"),
 
     /**
      * List of all executionId by status
      * 
-     * list:job:<jobId>:executionStatus:<status>:exe
+     * workhorse:job:<JobId>:execution:executionStatus:<status>:list
      */
-    LIST_OF_EXECUTION_OF_JOB_BY_STATUS("list:job:%s:executionStatus:%s:exe"),
+    LIST_OF_EXECUTION_OF_JOB_BY_STATUS("w:j:%s:e:s:%s:l"),
 
     /**
      * List of all executionId by batchId
      * 
-     * list:batch:<batchId>:exe
+     * workhorse:job:<JobId>:execution:batch:<batchId>:list
      */
-    LIST_OF_EXECUTION_OF_BATCH("list:batch:%s:exe"),
+    LIST_OF_EXECUTION_OF_BATCH("w:j:%s:e:b:%s:l"),
 
     /**
      * List of all executionId by chainId
      * 
-     * list:chain:<batchId>:exe
+     * workhorse:job:<JobId>:execution:chain:<batchId>:list
      */
-    LIST_OF_EXECUTION_OF_CHAIN("list:chain:%s:exe"),
+    LIST_OF_EXECUTION_OF_CHAIN("w:j:%s:e:c:%s:l"),
 
     // KEYS FOR EXECUTION LOG
 
     /**
      * Store the log execution with all attributes as JSON
      * 
-     * exe:<executionId>
+     * workhorse:job:<JobId>:execution:<executionId>:log
      */
-    EXECUTION_LOG_BY_ID("log:%s:exe"),
+    EXECUTION_LOG_BY_ID("w:j:%s:e:%s:lg"),
 
     /**
      * Store the logs of an execution
      * 
-     * log:<executionId>:exe
+     * workhorse:job:<JobId>:execution:<executionId>:log:list
      */
-    LIST_OF_EXECUTION_LOG_BY_ID("log:%s:exe"),
+    LIST_OF_EXECUTION_LOG_BY_ID("w:j:%s:e:%s:lg:l"),
 
     /**
      * Store the error of an execution
      * 
-     * error:<executionId>:exe
+     * workhorse:job:<JobId>:execution:<executionId>:errorLog:
      */
-    EXECUTION_ERROR_AND_STACKTRACE_BY_ID("error:%s:exe"),
+    EXECUTION_ERROR_AND_STACKTRACE_BY_ID("w:j:%s:e:%s:er"),
 
     // KEYS FOR WORKHORSE_LOG
 
     /**
      * Value to use as Id for JobEngineLog.
+     * 
+     * workhorse:log:index
      */
-    INC_WORKHORSE_LOG_ID("workhorseLogIndex"),
+    INC_WORKHORSE_LOG_ID("w:lg:i"),
 
     /**
      * Store a workhorseLog with all attributes as JSON
      * 
-     * workhorseLog:<workhorseLogId>
+     * workhorse:log:<workhorseLogId>
      */
-    WORKHORSE_LOG_BY_ID("workhorseLog:%s"),
+    WORKHORSE_LOG_BY_ID("w:lg:%s"),
 
     /**
      * List of workhorse logs by jobId
      * 
-     * list:job:<jobId>:workhorselog
+     * workhorse:log:job:<jobId>:list
      */
-    LIST_OF_WORKHORSE_LOG_BY_JOB("list:job:%s:workhorselog"),
+    LIST_OF_WORKHORSE_LOG_BY_JOB("w:j:%s:lg:l"),
 
     /**
      * List of all workhorse logs
+     * 
+     * workhorse:log:list
      */
-    WORKHORSE_LOG_LIST("list:workhorselog");
+    WORKHORSE_LOG_LIST("w:lg:l");
 
     String query;
 
