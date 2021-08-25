@@ -237,118 +237,6 @@ public class RedisClient {
         });
     }
 
-    public Boolean setexExpirationInSeconds(String key, Long expirationInSeconds, Object data) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                try {
-                    jedis.setex(key, expirationInSeconds, jsonObjectMapper.writeValueAsString(data));
-                } catch (JsonProcessingException e) {
-                    log.error("Data could not be serialized to JSON: " + data, e);
-                    return false;
-                }
-                return true;
-            }
-        });
-    }
-
-    /**
-     * Saves a JSON serialized object with the SET method (no deletion of data after n minutes).
-     */
-    public Boolean setNoExpire(String key, Object data) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                try {
-                    jedis.set(key, jsonObjectMapper.writeValueAsString(data));
-                } catch (JsonProcessingException e) {
-                    log.error("Data could not be serialized to JSON: " + data, e);
-                    return false;
-                }
-
-                return true;
-            }
-        });
-    }
-
-    /**
-     * Saves a string with the SET method (no deletion of the data after n minutes).
-     */
-    public Boolean setNoExpire(String key, String data) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                jedis.set(key, data);
-                return true;
-            }
-        });
-    }
-
-    /**
-     * Adds a JSON serialized object to a SET with the SADD command.
-     */
-    public Boolean sadd(String key, Object data) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                try {
-                    jedis.sadd(key, jsonObjectMapper.writeValueAsString(data));
-                } catch (JsonProcessingException e) {
-                    log.error("Data could not be serialized to JSON: " + data, e);
-                    return false;
-                }
-
-                return true;
-            }
-        });
-    }
-
-    /**
-     * Adds a string to a SET with the SADD command.
-     */
-    public Boolean sadd(String key, String data) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                jedis.sadd(key, data);
-                return true;
-            }
-        });
-    }
-
-    /**
-     * Removes a string from a set with the SREM command.
-     * 
-     * return <code> true </code> if the element was part of the set, <code> false </code> if it did not appear in the set.
-     */
-    public boolean srem(String key, String... members) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                return jedis.srem(key, members) == 1;
-            }
-        });
-    }
-
-    /**
-     * Returns all string members of this SET with the command SMBEMBERS.
-     */
-    public Set<String> smembers(String key) {
-        return jedisExecution.execute(new JedisOperation<Set<String>>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Set<String> perform(Jedis jedis) {
-                return jedis.smembers(key);
-            }
-        });
-    }
-
     /**
      * Deletes the key from the Redis store
      * 
@@ -379,18 +267,6 @@ public class RedisClient {
             @Override
             public Boolean perform(Jedis jedis) {
                 return jedis.exists(key);
-            }
-        });
-    }
-
-    public Boolean flushAll() {
-        log.info("Redis flush all..");
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                jedis.flushAll();
-                return true;
             }
         });
     }
@@ -573,16 +449,6 @@ public class RedisClient {
                     log.error("JSON konnte nicht zu " + clazz + " Objekt deserialisert werden: " + objectJson, e);
                 }
                 return null;
-            }
-        });
-    }
-
-    public long scard(String key) {
-        return jedisExecution.execute(new JedisOperation<Long>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Long perform(Jedis jedis) {
-                return jedis.scard(key);
             }
         });
     }

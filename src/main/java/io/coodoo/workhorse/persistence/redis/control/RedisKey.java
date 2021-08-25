@@ -85,16 +85,6 @@ public enum RedisKey {
     LIST_OF_EXECUTION_BY_JOB("w:j:%s:e:l"),
 
     /**
-     * Queue to store new created executions
-     */
-    // EXECUTION_QUEUE("queue:exe"),
-
-    // /**
-    // * Queue to store new created executions
-    // */
-    // PRIORITY_EXECUTION_QUEUE("queue:exe:priority"),
-
-    /**
      * List of all executionId by status
      * 
      * workhorse:job:<JobId>:execution:executionStatus:<status>:list
@@ -155,7 +145,7 @@ public enum RedisKey {
     WORKHORSE_LOG_BY_ID("w:lg:%s"),
 
     /**
-     * List of workhorse logs by jobId
+     * List of workhorse logIds by jobId
      * 
      * workhorse:log:job:<jobId>:list
      */
