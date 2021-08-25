@@ -19,6 +19,7 @@ public class RedisPersistenceConfigBuilder extends WorkhorseConfigBuilder {
         return this.config;
     }
 
+    // TODO spechendes / helfendes JavaDoc bitte an allen builder methoden und auch am builder selbst!
     public WorkhorseConfigBuilder redisHost(String redisHost) {
         config.setRedisHost(redisHost);
         return this;

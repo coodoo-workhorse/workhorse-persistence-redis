@@ -8,8 +8,8 @@ import io.coodoo.workhorse.persistence.interfaces.ConfigPersistence;
 import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
-import io.coodoo.workhorse.persistence.redis.control.RedisKey;
 import io.coodoo.workhorse.persistence.redis.control.RedisClient;
+import io.coodoo.workhorse.persistence.redis.control.RedisKey;
 
 /**
  * @author coodoo GmbH (coodoo.io)
@@ -31,6 +31,8 @@ public class RedisConfigPersistence implements ConfigPersistence {
         if (redisPersistenceConfig == null) {
             return null;
         }
+        // TODO warum nicht einfach so?! --> return (WorkhorseConfig) redisPersistenceConfig;
+
         WorkhorseConfig workhorseConfig = new RedisPersistenceConfig();
         workhorseConfig.setTimeZone(redisPersistenceConfig.getTimeZone());
         workhorseConfig.setBufferMax(redisPersistenceConfig.getBufferMax());
@@ -89,10 +91,13 @@ public class RedisConfigPersistence implements ConfigPersistence {
     public void connect(Object... params) {
 
         if (params == null || params.length == 0) {
+            // TODO ich finde hier sollte es laut krachen. also eine exception fliegen, die kurz sagt, was faul ist. denn sonst könnte macn ja ein fach die
+            // bedingung der nächsten abfrage hier mit aufnehmen.
             return;
         }
 
         if (!(params[0] instanceof RedisPersistenceConfig)) {
+            // TODO ich finde hier sollte es laut krachen. also eine exception fliegen, die kurz sagt, was faul ist.
             return;
         }
 

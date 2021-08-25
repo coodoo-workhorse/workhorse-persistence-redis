@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
  */
 public class StaticRedisConfig {
 
+    // TODO wieso sind hier alle werte erneut definiert? das gleiche haben wir doch bereits in RedisPersistenceConfig
+
     public static final String NAME = "Redis Persistence";
 
     public static String REDIS_HOST = "localhost";
@@ -25,6 +27,7 @@ public class StaticRedisConfig {
 
     public static String version = null;
     {
+        // TODO ebenfalls die gleiche logik wie in RedisPersistenceConfig
         try {
             InputStream inputStream = getClass().getClassLoader().getResourceAsStream("workhorse-persistence-redis.txt");
             InputStreamReader streamReader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);

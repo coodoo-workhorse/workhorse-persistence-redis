@@ -16,9 +16,12 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
     protected String persistenceName = "Redis Persistence";
     protected String redisHost = "localhost";
     protected int redisPort = 6379;
+    // TODO um was für werte handelt es sich hier? minuten? connections? Speicherzellen? es geht um das pooling von jedis?! bitte die drei attribute
+    // entsprechend benennen
     protected int maxTotal = 10240;
     protected int maxIdle = 100;
     protected int minIdle = 50;
+    // TODO die default werte in GenericObjectPoolConfig sind maxToal=8 maxIdle=8 und minIdle=0. wieso sind unsere so anders?
 
     protected String persistenceVersion = null;
     protected String version = null;

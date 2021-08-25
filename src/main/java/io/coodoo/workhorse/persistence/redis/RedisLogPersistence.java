@@ -53,18 +53,15 @@ public class RedisLogPersistence implements LogPersistence {
         if (jobId != null) {
 
             // remove the ID of the log in the list of workhorse IDs of the given jobId
-
             String workhorseLogByJobKey = RedisKey.LIST_OF_WORKHORSE_LOG_BY_JOB.getQuery(jobId);
             redisClient.lrem(workhorseLogByJobKey, logId);
         }
 
         // remove the ID of the log in the global list of IDs
-
         String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
         redisClient.lrem(workhorseLogListKey, logId);
 
         // Delete the workhorse Log
-
         redisClient.del(workhorseLogKey);
         return log;
     }
@@ -89,7 +86,6 @@ public class RedisLogPersistence implements LogPersistence {
             String workhorseLogByJobListKey = RedisKey.LIST_OF_WORKHORSE_LOG_BY_JOB.getQuery(jobId);
             redisClient.lpush(workhorseLogByJobListKey, workhorseLogId);
         }
-
         return workhorseLog;
     }
 
@@ -103,7 +99,6 @@ public class RedisLogPersistence implements LogPersistence {
             String workhorseLogKey = RedisKey.WORKHORSE_LOG_BY_ID.getQuery(workhorseLogId);
             workhorseLogKeys.add(workhorseLogKey);
         }
-
         return redisClient.get(workhorseLogKeys, WorkhorseLog.class);
     }
 
@@ -114,6 +109,7 @@ public class RedisLogPersistence implements LogPersistence {
         return CollectionListing.getListingResult(workhorseLogs, WorkhorseLog.class, listingParameters);
     }
 
+    // TODO warum ist die methode ausgelagert?
     protected List<WorkhorseLog> getAll() {
 
         String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
@@ -125,9 +121,7 @@ public class RedisLogPersistence implements LogPersistence {
 
             workhorseLogIdsKeys.add(RedisKey.WORKHORSE_LOG_BY_ID.getQuery(workhorseLogId));
         }
-
         return redisClient.get(workhorseLogIdsKeys, WorkhorseLog.class);
-
     }
 
     @Override
@@ -165,8 +159,6 @@ public class RedisLogPersistence implements LogPersistence {
     }
 
     @Override
-    public void connect(Object... params) {
-
-    }
+    public void connect(Object... params) {}
 
 }

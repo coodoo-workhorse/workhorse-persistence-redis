@@ -35,6 +35,7 @@ public class RedisClient {
 
     private static final Logger log = LoggerFactory.getLogger(RedisClient.class);
 
+    // TODO sollte nach unserer konverntion "objectMapper" benannt sein
     private final ObjectMapper jsonObjectMapper = new ObjectMapper();
 
     @PostConstruct
@@ -76,12 +77,13 @@ public class RedisClient {
                 return jedis.get(key);
             }
         });
-
+        // TODO log level in debug ändern oder entfernen
         log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
 
         return retVal;
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     public <T> T hGet(String key, String field, Class<T> clazz) {
 
         Long t1 = System.currentTimeMillis();
@@ -106,10 +108,12 @@ public class RedisClient {
 
         });
 
+        // TODO log level in debug ändern oder entfernen
         log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
         return retVal;
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     public <T> T hGet(String key, Class<T> clazz) {
         Long t1 = System.currentTimeMillis();
 
@@ -133,6 +137,7 @@ public class RedisClient {
 
         });
 
+        // TODO log level in debug ändern oder entfernen
         log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
         return retVal;
     }
@@ -159,6 +164,7 @@ public class RedisClient {
             }
         });
 
+        // TODO log level in debug ändern oder entfernen
         log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
 
         return retVal;
@@ -198,6 +204,7 @@ public class RedisClient {
             }
         });
 
+        // TODO log level in debug ändern oder entfernen
         log.info("Redis Call: {} {}ms", keys, System.currentTimeMillis() - t1);
 
         return retVal;
@@ -220,6 +227,7 @@ public class RedisClient {
         });
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     public Boolean hSet(String key, Object data) {
         return jedisExecution.execute(new JedisOperation<Boolean>() {
             @SuppressWarnings("unchecked")
@@ -254,6 +262,7 @@ public class RedisClient {
         });
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     /**
      * Test if the specified key exists. The command returns <code>true</code> if the key exists, otherwise <code>false</code> is returned. Note that even keys
      * set with an empty string as value will return <code>true</code>. Time complexity: O(1)
@@ -300,6 +309,7 @@ public class RedisClient {
         });
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     public <T> Boolean createList(String key, List<T> datas) {
         return jedisExecution.execute(new JedisOperation<Boolean>() {
             @SuppressWarnings("unchecked")
@@ -324,6 +334,7 @@ public class RedisClient {
         });
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     public <T> Long rpush(String key, List<T> objects) {
         return jedisExecution.execute(new JedisOperation<Long>() {
             @SuppressWarnings("unchecked")
@@ -378,6 +389,7 @@ public class RedisClient {
         });
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     public <T> T lpop(String key, Class<T> clazz) {
 
         return jedisExecution.execute(new JedisOperation<T>() {
@@ -425,6 +437,7 @@ public class RedisClient {
         });
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     /**
      * Returns the element at index index in the list stored at key. The index is zero-based, so 0 means the first element, 1 the second element and so on.
      * Negative indices can be used to designate elements starting at the tail of the list. Here, -1 means the last element, -2 means the penultimate and so
@@ -499,6 +512,7 @@ public class RedisClient {
         });
     }
 
+    // TODO wird nicht verwendet, bitte entfernen
     public <T> void publish(String channelId, String message) {
         jedisExecution.execute(new JedisOperation<T>() {
             @SuppressWarnings("unchecked")

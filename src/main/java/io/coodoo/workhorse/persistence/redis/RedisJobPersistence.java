@@ -62,9 +62,7 @@ public class RedisJobPersistence implements JobPersistence {
                 return job;
             }
         }
-
         return null;
-
     }
 
     @Override
@@ -89,7 +87,6 @@ public class RedisJobPersistence implements JobPersistence {
                 return job;
             }
         }
-
         return null;
     }
 
@@ -104,7 +101,6 @@ public class RedisJobPersistence implements JobPersistence {
         for (Long id : jobIds) {
             jobKeys.add(RedisKey.JOB_BY_ID.getQuery(id));
         }
-
         return redisClient.get(jobKeys, Job.class);
     }
 
@@ -147,7 +143,6 @@ public class RedisJobPersistence implements JobPersistence {
                 }
             }
         }
-
         return resultJobs;
     }
 
@@ -163,7 +158,6 @@ public class RedisJobPersistence implements JobPersistence {
                 resultJobs.add(job);
             }
         }
-
         return resultJobs;
     }
 
@@ -171,11 +165,8 @@ public class RedisJobPersistence implements JobPersistence {
     public JobStatusCount getJobStatusCount() {
 
         long countActive = countByStatus(JobStatus.ACTIVE);
-
         long countInactive = countByStatus(JobStatus.INACTIVE);
-
         long countError = countByStatus(JobStatus.ERROR);
-
         long countNoWorker = countByStatus(JobStatus.NO_WORKER);
 
         return new JobStatusCount(countActive, countInactive, countNoWorker, countError);
@@ -223,7 +214,7 @@ public class RedisJobPersistence implements JobPersistence {
         return job;
     }
 
-    // Think about put it in a redis transaction
+    // TODO Think about put it in a redis transaction
     @Override
     public Job update(Job newJob) {
 
@@ -257,12 +248,9 @@ public class RedisJobPersistence implements JobPersistence {
         if (!Objects.equals(oldJob.getStatus(), newJob.getStatus())) {
 
             String jobListByOldStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(oldJob.getStatus());
-
             String jobListByNewStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(newJob.getStatus());
-
             redisClient.lmove(jobListByOldStatusKey, jobListByNewStatusKey, jobId);
         }
-
         return redisClient.get(jobKey, Job.class);
     }
 
@@ -297,10 +285,10 @@ public class RedisJobPersistence implements JobPersistence {
         redisClient.deleteKeys(jobKey);
     }
 
+    // TODO warum ist diese methode proteced? kommen noch tests? ;)
     protected int deleteJobsLog(Long jobId) {
 
         String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
-
         String workhorseLogByJobKey = RedisKey.LIST_OF_WORKHORSE_LOG_BY_JOB.getQuery(jobId);
 
         List<Long> workhorseLogIds = redisClient.lrange(workhorseLogByJobKey, Long.class, 0, -1);

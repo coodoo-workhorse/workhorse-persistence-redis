@@ -18,10 +18,15 @@
 ## Prerequisites
 
 Before you begin, ensure you have met the following requirements:
+
+TODO: Redis Server/Version!?
+
 * You have installed at least [Java 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 * You have [Maven](https://maven.apache.org/download.cgi) running on your system
   
 ## Get Workhorse
+
+TODO: ist das noch aktuell?
 
 Run command:
 
@@ -31,12 +36,12 @@ mvn dependency:get -Dartifact=io.coodoo:workhorse:2.0.0-RC2-SNAPSHOT
 
 ## Install
 
-TODO
+TODO !
 
 
 ## Getting started
 
-TODO
+TODO !
 
 
 ## Changelog

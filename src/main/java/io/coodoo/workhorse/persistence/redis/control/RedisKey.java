@@ -1,7 +1,7 @@
 package io.coodoo.workhorse.persistence.redis.control;
 
 /**
- * Set of keys used by the redis persistence implementation
+ * Set of keys used by the Redis persistence implementation
  * 
  * @author coodoo GmbH (coodoo.io)
  */
@@ -12,6 +12,7 @@ public enum RedisKey {
      * 
      * workhorse:config
      */
+    // TODO ich sehe nicht, wozu wir das prefix "WORKHORSE_" in den keys brauchen und schlage vor dieses prefix an keinem key zu verwerden
     WORKHORSE_CONFIG("w:c"),
 
     /**
@@ -19,11 +20,13 @@ public enum RedisKey {
      * 
      * workhorse:job:index
      */
+    // TODO wofür steht das prefix "INC_"?! das wird mir nicht ersichtich
     INC_JOB_ID("w:j:i"),
 
     /**
      * List of IDs of all jobs
      */
+    // TODO ich fände es besser, wenn der erste teil eines key IMMER die fachliche domäne ist. hier wäre das "JOB_" also "JOB_LIST"
     LIST_OF_JOB("w:j:l"),
 
     /**
@@ -50,7 +53,7 @@ public enum RedisKey {
     /**
      * List of jobs by status
      * 
-     * workhorse:job:status:<JobStatus>:list
+     * workhorse:job:status:<jobStatus>:list
      */
     LIST_OF_JOB_BY_STATUS("w:j:s:%s:l"),
 
@@ -66,42 +69,42 @@ public enum RedisKey {
     /**
      * Store the execution with all attributes as JSON
      * 
-     * workhorse:job:<JobId>:execution:<executionId>
+     * workhorse:job:<jobId>:execution:<executionId>
      */
     EXECUTION_BY_ID("w:j:%s:e:%s"),
 
     /**
-     * Store the executionId associated with the given parameterhash
+     * Store the executionId associated with the given parameter hash
      * 
-     * workhorse:job:<JobId>:execution:paramHash:<parametersHash>
+     * workhorse:job:<jobId>:execution:paramHash:<parametersHash>
      */
     EXECUTION_BY_PARAMETER_HASH("w:j:%s:e:p:%s"),
 
     /**
      * List of all executionId by JobId
      * 
-     * workhorse:job:<JobId>:execution:list
+     * workhorse:job:<jobId>:execution:list
      */
     LIST_OF_EXECUTION_BY_JOB("w:j:%s:e:l"),
 
     /**
      * List of all executionId by status
      * 
-     * workhorse:job:<JobId>:execution:executionStatus:<status>:list
+     * workhorse:job:<jobId>:execution:executionStatus:<status>:list
      */
     LIST_OF_EXECUTION_OF_JOB_BY_STATUS("w:j:%s:e:s:%s:l"),
 
     /**
      * List of all executionId by batchId
      * 
-     * workhorse:job:<JobId>:execution:batch:<batchId>:list
+     * workhorse:job:<jobId>:execution:batch:<batchId>:list
      */
     LIST_OF_EXECUTION_OF_BATCH("w:j:%s:e:b:%s:l"),
 
     /**
      * List of all executionId by chainId
      * 
-     * workhorse:job:<JobId>:execution:chain:<batchId>:list
+     * workhorse:job:<jobId>:execution:chain:<batchId>:list
      */
     LIST_OF_EXECUTION_OF_CHAIN("w:j:%s:e:c:%s:l"),
 
@@ -110,25 +113,25 @@ public enum RedisKey {
     /**
      * Store the log execution with all attributes as JSON
      * 
-     * workhorse:job:<JobId>:execution:<executionId>:log
+     * workhorse:job:<jobId>:execution:<executionId>:log
      */
     EXECUTION_LOG_BY_ID("w:j:%s:e:%s:lg"),
 
     /**
      * Store the logs of an execution
      * 
-     * workhorse:job:<JobId>:execution:<executionId>:log:list
+     * workhorse:job:<jobId>:execution:<executionId>:log:list
      */
     LIST_OF_EXECUTION_LOG_BY_ID("w:j:%s:e:%s:lg:l"),
 
     /**
      * Store the error of an execution
      * 
-     * workhorse:job:<JobId>:execution:<executionId>:errorLog:
+     * workhorse:job:<jobId>:execution:<executionId>:errorLog:
      */
     EXECUTION_ERROR_AND_STACKTRACE_BY_ID("w:j:%s:e:%s:er"),
 
-    // KEYS FOR WORKHORSE_LOG
+    // KEYS FOR WORKHORSE LOG
 
     /**
      * Value to use as Id for JobEngineLog.
@@ -158,6 +161,7 @@ public enum RedisKey {
      */
     WORKHORSE_LOG_LIST("w:lg:l");
 
+    // TODO private
     String query;
 
     private RedisKey(String query) {
