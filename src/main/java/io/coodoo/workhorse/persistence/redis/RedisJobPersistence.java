@@ -93,7 +93,7 @@ public class RedisJobPersistence implements JobPersistence {
     @Override
     public List<Job> getAll() {
 
-        String jobsListKey = RedisKey.LIST_OF_JOB.getQuery();
+        String jobsListKey = RedisKey.JOB_LIST.getQuery();
         List<Long> jobIds = redisClient.lrange(jobsListKey, Long.class, 0, -1);
 
         List<String> jobKeys = new ArrayList<>();
@@ -119,7 +119,7 @@ public class RedisJobPersistence implements JobPersistence {
     @Override
     public List<Job> getAllByStatus(JobStatus jobStatus) {
 
-        String jobListByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(jobStatus);
+        String jobListByStatusKey = RedisKey.JOB_BY_STATUS_LIST.getQuery(jobStatus);
         List<Long> jobIdsByStatus = redisClient.lrange(jobListByStatusKey, Long.class, 0, -1);
 
         List<String> jobKeys = new ArrayList<>();
@@ -174,24 +174,24 @@ public class RedisJobPersistence implements JobPersistence {
 
     @Override
     public Long count() {
-        String jobsListKey = RedisKey.LIST_OF_JOB.getQuery();
+        String jobsListKey = RedisKey.JOB_LIST.getQuery();
         return redisClient.llen(jobsListKey);
     }
 
     @Override
     public Long countByStatus(JobStatus jobStatus) {
-        String jobsByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(jobStatus);
+        String jobsByStatusKey = RedisKey.JOB_BY_STATUS_LIST.getQuery(jobStatus);
         return redisClient.llen(jobsByStatusKey);
     }
 
     @Override
     public Job persist(Job job) {
-        Long id = redisClient.incr(RedisKey.INC_JOB_ID.getQuery());
+        Long id = redisClient.incr(RedisKey.JOB_ID_INDEX.getQuery());
         String jobKey = RedisKey.JOB_BY_ID.getQuery(id);
         String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(job.getName());
         String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(job.getWorkerClassName());
-        String jobListKey = RedisKey.LIST_OF_JOB.getQuery();
-        String jobListByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(job.getStatus());
+        String jobListKey = RedisKey.JOB_LIST.getQuery();
+        String jobListByStatusKey = RedisKey.JOB_BY_STATUS_LIST.getQuery(job.getStatus());
 
         job.setId(id);
         job.setCreatedAt(WorkhorseUtil.timestamp());
@@ -247,8 +247,8 @@ public class RedisJobPersistence implements JobPersistence {
 
         if (!Objects.equals(oldJob.getStatus(), newJob.getStatus())) {
 
-            String jobListByOldStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(oldJob.getStatus());
-            String jobListByNewStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(newJob.getStatus());
+            String jobListByOldStatusKey = RedisKey.JOB_BY_STATUS_LIST.getQuery(oldJob.getStatus());
+            String jobListByNewStatusKey = RedisKey.JOB_BY_STATUS_LIST.getQuery(newJob.getStatus());
             redisClient.lmove(jobListByOldStatusKey, jobListByNewStatusKey, jobId);
         }
         return redisClient.get(jobKey, Job.class);
@@ -262,8 +262,8 @@ public class RedisJobPersistence implements JobPersistence {
 
         String jobNameKey = RedisKey.JOB_BY_NAME.getQuery(job.getName());
         String workerNameKey = RedisKey.JOB_BY_WORKER_NAME.getQuery(job.getWorkerClassName());
-        String jobListKey = RedisKey.LIST_OF_JOB.getQuery();
-        String jobListByStatusKey = RedisKey.LIST_OF_JOB_BY_STATUS.getQuery(job.getStatus());
+        String jobListKey = RedisKey.JOB_LIST.getQuery();
+        String jobListByStatusKey = RedisKey.JOB_BY_STATUS_LIST.getQuery(job.getStatus());
 
         deleteJobsLog(jobId);
 
@@ -289,7 +289,7 @@ public class RedisJobPersistence implements JobPersistence {
     protected int deleteJobsLog(Long jobId) {
 
         String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
-        String workhorseLogByJobKey = RedisKey.LIST_OF_WORKHORSE_LOG_BY_JOB.getQuery(jobId);
+        String workhorseLogByJobKey = RedisKey.WORKHORSE_LOG_BY_JOB_LIST.getQuery(jobId);
 
         List<Long> workhorseLogIds = redisClient.lrange(workhorseLogByJobKey, Long.class, 0, -1);
 

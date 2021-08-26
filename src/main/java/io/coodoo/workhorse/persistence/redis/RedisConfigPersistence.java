@@ -26,7 +26,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
     @Override
     public WorkhorseConfig get() {
 
-        RedisPersistenceConfig redisPersistenceConfig = redisService.get(RedisKey.WORKHORSE_CONFIG.getQuery(), RedisPersistenceConfig.class);
+        RedisPersistenceConfig redisPersistenceConfig = redisService.get(RedisKey.CONFIG.getQuery(), RedisPersistenceConfig.class);
 
         if (redisPersistenceConfig == null) {
             return null;
@@ -70,7 +70,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
         redisPersisitenceConfig.setLogInfoMarker(workhorseConfig.getLogInfoMarker());
         redisPersisitenceConfig.setLogWarnMarker(workhorseConfig.getLogWarnMarker());
         redisPersisitenceConfig.setLogErrorMarker(workhorseConfig.getLogErrorMarker());
-        redisService.set(RedisKey.WORKHORSE_CONFIG.getQuery(), redisPersisitenceConfig);
+        redisService.set(RedisKey.CONFIG.getQuery(), redisPersisitenceConfig);
 
         return get();
     }
@@ -104,6 +104,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
         RedisPersistenceConfig redisPersistenceConfig = (RedisPersistenceConfig) params[0];
         StaticRedisConfig.REDIS_HOST = redisPersistenceConfig.getRedisHost();
         StaticRedisConfig.REDIS_PORT = redisPersistenceConfig.getRedisPort();
+        StaticRedisConfig.TIME_OUT = redisPersistenceConfig.getTimeOut();
         StaticRedisConfig.MAX_TOTAL = redisPersistenceConfig.getMaxTotal();
         StaticRedisConfig.MAX_IDLE = redisPersistenceConfig.getMaxIdle();
         StaticRedisConfig.MIN_IDLE = redisPersistenceConfig.getMinIdle();

@@ -16,6 +16,7 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
     protected String persistenceName = "Redis Persistence";
     protected String redisHost = "localhost";
     protected int redisPort = 6379;
+    protected int timeOut = 2000;
     // TODO um was für werte handelt es sich hier? minuten? connections? Speicherzellen? es geht um das pooling von jedis?! bitte die drei attribute
     // entsprechend benennen
     protected int maxTotal = 10240;
@@ -84,6 +85,14 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
 
     public void setRedisPort(int redisPort) {
         this.redisPort = redisPort;
+    }
+
+    public int getTimeOut() {
+        return timeOut;
+    }
+
+    public void setTimeOut(int timeOut) {
+        this.timeOut = timeOut;
     }
 
     public int getMaxTotal() {

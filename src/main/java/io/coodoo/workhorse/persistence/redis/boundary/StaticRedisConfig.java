@@ -19,6 +19,8 @@ public class StaticRedisConfig {
 
     public static int REDIS_PORT = 6379;
 
+    public static int TIME_OUT = 2000;
+
     public static int MAX_TOTAL = 10240;
 
     public static int MAX_IDLE = 100;

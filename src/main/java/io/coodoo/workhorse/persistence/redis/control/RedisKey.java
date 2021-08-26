@@ -12,22 +12,21 @@ public enum RedisKey {
      * 
      * workhorse:config
      */
-    // TODO ich sehe nicht, wozu wir das prefix "WORKHORSE_" in den keys brauchen und schlage vor dieses prefix an keinem key zu verwerden
-    WORKHORSE_CONFIG("w:c"),
+    // TODOX ich sehe nicht, wozu wir das prefix "WORKHORSE_" in den keys brauchen und schlage vor dieses prefix an keinem key zu verwerden
+    CONFIG("w:c"),
 
     /**
      * Value to use as ID for Job.
      * 
      * workhorse:job:index
      */
-    // TODO wofür steht das prefix "INC_"?! das wird mir nicht ersichtich
-    INC_JOB_ID("w:j:i"),
+    // TODOX wofür steht das prefix "INC_"?! das wird mir nicht ersichtich
+    JOB_ID_INDEX("w:j:i"),
 
     /**
      * List of IDs of all jobs
      */
-    // TODO ich fände es besser, wenn der erste teil eines key IMMER die fachliche domäne ist. hier wäre das "JOB_" also "JOB_LIST"
-    LIST_OF_JOB("w:j:l"),
+    JOB_LIST("w:j:l"),
 
     /**
      * Store the job with attributes as JSON
@@ -55,7 +54,7 @@ public enum RedisKey {
      * 
      * workhorse:job:status:<jobStatus>:list
      */
-    LIST_OF_JOB_BY_STATUS("w:j:s:%s:l"),
+    JOB_BY_STATUS_LIST("w:j:s:%s:l"),
 
     // KEYS FOR EXECUTION
 
@@ -64,7 +63,7 @@ public enum RedisKey {
      * 
      * workhorse:execution:index
      */
-    INC_EXECUTION_ID("w:j:e:i"),
+    EXECUTION_ID_INDEX("w:j:e:i"),
 
     /**
      * Store the execution with all attributes as JSON
@@ -85,28 +84,28 @@ public enum RedisKey {
      * 
      * workhorse:job:<jobId>:execution:list
      */
-    LIST_OF_EXECUTION_BY_JOB("w:j:%s:e:l"),
+    EXECUTION_BY_JOB_LIST("w:j:%s:e:l"),
 
     /**
      * List of all executionId by status
      * 
      * workhorse:job:<jobId>:execution:executionStatus:<status>:list
      */
-    LIST_OF_EXECUTION_OF_JOB_BY_STATUS("w:j:%s:e:s:%s:l"),
+    EXECUTION_OF_JOB_BY_STATUS_LIST("w:j:%s:e:s:%s:l"),
 
     /**
      * List of all executionId by batchId
      * 
      * workhorse:job:<jobId>:execution:batch:<batchId>:list
      */
-    LIST_OF_EXECUTION_OF_BATCH("w:j:%s:e:b:%s:l"),
+    EXECUTION_OF_BATCH_LIST("w:j:%s:e:b:%s:l"),
 
     /**
      * List of all executionId by chainId
      * 
      * workhorse:job:<jobId>:execution:chain:<batchId>:list
      */
-    LIST_OF_EXECUTION_OF_CHAIN("w:j:%s:e:c:%s:l"),
+    EXECUTION_OF_CHAIN_LIST("w:j:%s:e:c:%s:l"),
 
     // KEYS FOR EXECUTION LOG
 
@@ -122,7 +121,7 @@ public enum RedisKey {
      * 
      * workhorse:job:<jobId>:execution:<executionId>:log:list
      */
-    LIST_OF_EXECUTION_LOG_BY_ID("w:j:%s:e:%s:lg:l"),
+    EXECUTION_LOG_BY_ID_LIST("w:j:%s:e:%s:lg:l"),
 
     /**
      * Store the error of an execution
@@ -138,7 +137,7 @@ public enum RedisKey {
      * 
      * workhorse:log:index
      */
-    INC_WORKHORSE_LOG_ID("w:lg:i"),
+    WORKHORSE_LOG_ID_INDEX("w:lg:i"),
 
     /**
      * Store a workhorseLog with all attributes as JSON
@@ -152,7 +151,7 @@ public enum RedisKey {
      * 
      * workhorse:log:job:<jobId>:list
      */
-    LIST_OF_WORKHORSE_LOG_BY_JOB("w:j:%s:lg:l"),
+    WORKHORSE_LOG_BY_JOB_LIST("w:j:%s:lg:l"),
 
     /**
      * List of all workhorse logs
@@ -161,8 +160,7 @@ public enum RedisKey {
      */
     WORKHORSE_LOG_LIST("w:lg:l");
 
-    // TODO private
-    String query;
+    private String query;
 
     private RedisKey(String query) {
         this.query = query;

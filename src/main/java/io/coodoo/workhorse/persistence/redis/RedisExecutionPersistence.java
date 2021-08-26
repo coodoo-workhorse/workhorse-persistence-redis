@@ -58,7 +58,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
     @Override
     public List<Execution> getByJobId(Long jobId, Long limit) {
-        String executionByJobKey = RedisKey.LIST_OF_EXECUTION_BY_JOB.getQuery(jobId);
+        String executionByJobKey = RedisKey.EXECUTION_BY_JOB_LIST.getQuery(jobId);
 
         List<Long> executionIds = redisClient.lrange(executionByJobKey, Long.class, 0, limit);
 
@@ -74,7 +74,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     @Override
     public ListingResult<Execution> getExecutionListing(Long jobId, ListingParameters listingParameters) {
 
-        String redisKey = RedisKey.LIST_OF_EXECUTION_BY_JOB.getQuery(jobId);
+        String redisKey = RedisKey.EXECUTION_BY_JOB_LIST.getQuery(jobId);
 
         List<Execution> result = new ArrayList<>();
 
@@ -96,8 +96,8 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             result.addAll(redisClient.get(executionIdKeys, Execution.class));
 
             start = end;
-            // TODO sollte es hier nicht um 1000 inkrementiert werden?
-            end = start + 999;
+            // TODOX sollte es hier nicht um 1000 inkrementiert werden?
+            end = start + 1000;
             time = System.currentTimeMillis() - startTime;
         }
         return CollectionListing.getListingResult(result, Execution.class, listingParameters);
@@ -108,8 +108,8 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
         LocalDateTime currentTimeStamp = WorkhorseUtil.timestamp();
 
-        String listOfQueuedExecutionByJob = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(jobId, ExecutionStatus.QUEUED);
-        String listOfPlannedExecutionByJob = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(jobId, ExecutionStatus.PLANNED);
+        String listOfQueuedExecutionByJob = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(jobId, ExecutionStatus.QUEUED);
+        String listOfPlannedExecutionByJob = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(jobId, ExecutionStatus.PLANNED);
 
         List<Execution> result = new ArrayList<>();
 
@@ -145,7 +145,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
     @Override
     public Execution persist(Execution execution) {
-        Long executionId = redisClient.incr(RedisKey.INC_EXECUTION_ID.getQuery());
+        Long executionId = redisClient.incr(RedisKey.EXECUTION_ID_INDEX.getQuery());
         Long jobId = execution.getJobId();
         execution.setId(executionId);
         execution.setCreatedAt(WorkhorseUtil.timestamp());
@@ -154,7 +154,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         redisClient.set(executionKey, execution);
 
         // add the execution to the list of execution of the job with the given ID
-        String listOfExecutionByJobKey = RedisKey.LIST_OF_EXECUTION_BY_JOB.getQuery(execution.getJobId());
+        String listOfExecutionByJobKey = RedisKey.EXECUTION_BY_JOB_LIST.getQuery(execution.getJobId());
         redisClient.lpush(listOfExecutionByJobKey, executionId);
 
         // Store the parameterHash as a key with the ID of the execution as value
@@ -167,21 +167,21 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         // add the execution to the chain
         Long chainId = execution.getChainId();
         if (chainId != null && chainId > 0l) {
-            String listOfExecutionOfChainId = RedisKey.LIST_OF_EXECUTION_OF_CHAIN.getQuery(jobId, chainId);
+            String listOfExecutionOfChainId = RedisKey.EXECUTION_OF_CHAIN_LIST.getQuery(jobId, chainId);
             redisClient.rpush(listOfExecutionOfChainId, executionId);
         }
 
         // add the execution to the batch
         Long batchId = execution.getBatchId();
         if (batchId != null && batchId > 0l) {
-            String listOfExecutionOfBatchId = RedisKey.LIST_OF_EXECUTION_OF_BATCH.getQuery(jobId, batchId);
+            String listOfExecutionOfBatchId = RedisKey.EXECUTION_OF_BATCH_LIST.getQuery(jobId, batchId);
             redisClient.rpush(listOfExecutionOfBatchId, executionId);
         }
 
         // elements of an chained execution do not have to be in a queue
         if (chainId == null || chainId < 0l) {
             // add the execution to the list of the ones with the given status
-            String listOfExecutionByJobOnStatus = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(execution.getJobId(), execution.getStatus());
+            String listOfExecutionByJobOnStatus = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(execution.getJobId(), execution.getStatus());
             redisClient.rpush(listOfExecutionByJobOnStatus, executionId);
         }
 
@@ -205,23 +205,23 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         // remove the execution in the chain
         Long chainId = execution.getChainId();
         if (chainId != null && chainId > 0l) {
-            String listOfExecutionOfChainId = RedisKey.LIST_OF_EXECUTION_OF_CHAIN.getQuery(jobId, chainId);
+            String listOfExecutionOfChainId = RedisKey.EXECUTION_OF_CHAIN_LIST.getQuery(jobId, chainId);
             redisClient.lrem(listOfExecutionOfChainId, executionId);
         }
 
-        // add the execution to the batch
+        // remove the execution to the batch
         Long batchId = execution.getBatchId();
         if (batchId != null && batchId > 0l) {
-            String listOfExecutionOfBatchId = RedisKey.LIST_OF_EXECUTION_OF_BATCH.getQuery(jobId, batchId);
+            String listOfExecutionOfBatchId = RedisKey.EXECUTION_OF_BATCH_LIST.getQuery(jobId, batchId);
             redisClient.lrem(listOfExecutionOfBatchId, executionId);
         }
 
         // remove the execution ID in the list of executions in the current status
-        String executionStatusKey = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(execution.getStatus());
+        String executionStatusKey = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(execution.getStatus());
         redisClient.lrem(executionStatusKey, executionId);
 
         // remove the execution to the list of execution of the job with the given ID
-        String listOfExecutionByJobKey = RedisKey.LIST_OF_EXECUTION_BY_JOB.getQuery(jobId);
+        String listOfExecutionByJobKey = RedisKey.EXECUTION_BY_JOB_LIST.getQuery(jobId);
         redisClient.lrem(listOfExecutionByJobKey, executionId);
 
         // remove the execution
@@ -240,22 +240,22 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
         Long chainId = execution.getChainId();
         if (chainId != null && chainId > 0l) {
-            String listOfExecutionOfChainId = RedisKey.LIST_OF_EXECUTION_OF_CHAIN.getQuery(jobId, chainId);
+            String listOfExecutionOfChainId = RedisKey.EXECUTION_OF_CHAIN_LIST.getQuery(jobId, chainId);
             redisClient.rpush(listOfExecutionOfChainId, executionId);
         }
 
         Long batchId = execution.getBatchId();
         if (batchId != null && batchId > 0l) {
-            String listOfExecutionOfBatchId = RedisKey.LIST_OF_EXECUTION_OF_BATCH.getQuery(jobId, batchId);
+            String listOfExecutionOfBatchId = RedisKey.EXECUTION_OF_BATCH_LIST.getQuery(jobId, batchId);
             redisClient.rpush(listOfExecutionOfBatchId, executionId);
         }
 
         if (!Objects.equals(oldExecution.getStatus(), execution.getStatus())) {
 
             // remove the ID of the execution in the list of her old status
-            String oldListOfExecutionByJobOnStatus = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(jobId, oldExecution.getStatus());
+            String oldListOfExecutionByJobOnStatus = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(jobId, oldExecution.getStatus());
             // add the ID of the execution in the list of the new status
-            String newListOfExecutionByJobOnStatus = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(jobId, execution.getStatus());
+            String newListOfExecutionByJobOnStatus = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(jobId, execution.getStatus());
 
             redisClient.lmove(oldListOfExecutionByJobOnStatus, newListOfExecutionByJobOnStatus, executionId);
 
@@ -304,38 +304,34 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         return count;
     }
 
-    // TODO getBatch und getChain sind quasi identisch und sollten eine gemeinsame private methode aufrufen, der sie nur ihren key übergeben
+    private List<Execution> getBundle(Long jobId, String bundleKey) {
+
+        // Get the executions in the bundle by key
+        List<Long> bundleExecutionIds = redisClient.lrange(bundleKey, Long.class, 0, -1);
+
+        List<String> bundleExecutionIdsKeys = new ArrayList<>();
+
+        for (Long executionId : bundleExecutionIds) {
+
+            bundleExecutionIdsKeys.add(RedisKey.EXECUTION_BY_ID.getQuery(jobId, executionId));
+        }
+        return redisClient.get(bundleExecutionIdsKeys, Execution.class);
+    }
+
     @Override
     public List<Execution> getBatch(Long jobId, Long batchId) {
-        String listOfExecutionOfBatchId = RedisKey.LIST_OF_EXECUTION_OF_BATCH.getQuery(jobId, batchId);
 
-        // Get the executions in the batch
-        List<Long> batchExecutionIds = redisClient.lrange(listOfExecutionOfBatchId, Long.class, 0, -1);
+        String listOfExecutionOfBatchId = RedisKey.EXECUTION_OF_BATCH_LIST.getQuery(jobId, batchId);
 
-        List<String> batchExecutionIdsKeys = new ArrayList<>();
-
-        for (Long executionId : batchExecutionIds) {
-
-            batchExecutionIdsKeys.add(RedisKey.EXECUTION_BY_ID.getQuery(jobId, executionId));
-        }
-        return redisClient.get(batchExecutionIdsKeys, Execution.class);
+        return getBundle(jobId, listOfExecutionOfBatchId);
     }
 
     @Override
     public List<Execution> getChain(Long jobId, Long chainId) {
 
-        String listOfExecutionOfChainId = RedisKey.LIST_OF_EXECUTION_OF_CHAIN.getQuery(jobId, chainId);
+        String listOfExecutionOfChainId = RedisKey.EXECUTION_OF_CHAIN_LIST.getQuery(jobId, chainId);
 
-        // get the executions in the batch
-        List<Long> chainExecutionIds = redisClient.lrange(listOfExecutionOfChainId, Long.class, 0, -1);
-
-        List<String> chainExecutionIdsKeys = new ArrayList<>();
-
-        for (Long executionId : chainExecutionIds) {
-
-            chainExecutionIdsKeys.add(RedisKey.EXECUTION_BY_ID.getQuery(jobId, executionId));
-        }
-        return redisClient.get(chainExecutionIdsKeys, Execution.class);
+        return getBundle(jobId, listOfExecutionOfChainId);
     }
 
     @Override
@@ -361,7 +357,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     public boolean isBatchFinished(Long jobId, Long batchId) {
 
         // get the IDs of all executions of the given batch
-        String listOfBatchKey = RedisKey.LIST_OF_EXECUTION_OF_BATCH.getQuery(jobId, batchId);
+        String listOfBatchKey = RedisKey.EXECUTION_OF_BATCH_LIST.getQuery(jobId, batchId);
         List<Long> batchExecutionIds = redisClient.lrange(listOfBatchKey, Long.class, 0, -1);
 
         // build the rediskeys used to get execution by ID
@@ -386,7 +382,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     public boolean abortChain(Long jobId, Long chainId) {
 
         // get the IDs of all executions of the given chain
-        String listOfExecutionOfChainId = RedisKey.LIST_OF_EXECUTION_OF_CHAIN.getQuery(jobId, chainId);
+        String listOfExecutionOfChainId = RedisKey.EXECUTION_OF_CHAIN_LIST.getQuery(jobId, chainId);
         List<Long> chainExecutionIds = redisClient.lrange(listOfExecutionOfChainId, Long.class, 0, -1);
 
         // set the queued executions of the chain to status ABORTED
@@ -402,7 +398,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
     @Override
     public List<Execution> findTimeoutExecutions(LocalDateTime time) {
-        String redisKey = RedisKey.LIST_OF_JOB.getQuery();
+        String redisKey = RedisKey.JOB_LIST.getQuery();
 
         List<Execution> result = new ArrayList<>();
         List<Long> jobIds = redisClient.lrange(redisKey, Long.class, 0, -1);
@@ -427,12 +423,12 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
         List<JobExecutionStatusSummary> result = new ArrayList<>();
 
-        String listOfJobsKey = RedisKey.LIST_OF_JOB.getQuery();
+        String listOfJobsKey = RedisKey.JOB_LIST.getQuery();
 
         List<Long> jobIds = redisClient.lrange(listOfJobsKey, Long.class, 0, -1);
 
         for (Long jobId : jobIds) {
-            String listOfExecutionIdInStatus = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(jobId, status);
+            String listOfExecutionIdInStatus = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(jobId, status);
 
             List<Long> executionIds = redisClient.lrange(listOfExecutionIdInStatus, Long.class, 0, -1);
 
@@ -453,7 +449,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         List<Long> jobIds = new ArrayList<>();
 
         if (jobId == null) {
-            String listOfJobsKey = RedisKey.LIST_OF_JOB.getQuery();
+            String listOfJobsKey = RedisKey.JOB_LIST.getQuery();
 
             List<Long> redisJobIds = redisClient.lrange(listOfJobsKey, Long.class, 0, -1);
             jobIds.addAll(redisJobIds);
@@ -470,22 +466,22 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
         for (Long id : jobIds) {
 
-            String listOfExecutionsPlanned = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(id, ExecutionStatus.PLANNED);
+            String listOfExecutionsPlanned = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(id, ExecutionStatus.PLANNED);
             countPlanned = countPlanned + redisClient.llen(listOfExecutionsPlanned);
 
-            String listOfExecutionsQueued = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(id, ExecutionStatus.QUEUED);
+            String listOfExecutionsQueued = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(id, ExecutionStatus.QUEUED);
             countQueued = countQueued + redisClient.llen(listOfExecutionsQueued);
 
-            String listOfExecutionsRunning = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(id, ExecutionStatus.RUNNING);
+            String listOfExecutionsRunning = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(id, ExecutionStatus.RUNNING);
             countRunning = countRunning + redisClient.llen(listOfExecutionsRunning);
 
-            String listOfExecutionsFinished = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(id, ExecutionStatus.FINISHED);
+            String listOfExecutionsFinished = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(id, ExecutionStatus.FINISHED);
             countFinished = countFinished + redisClient.llen(listOfExecutionsFinished);
 
-            String listOfExecutionsFailed = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(id, ExecutionStatus.FAILED);
+            String listOfExecutionsFailed = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(id, ExecutionStatus.FAILED);
             countFailed = countFailed + redisClient.llen(listOfExecutionsFailed);
 
-            String listOfExecutionsAborted = RedisKey.LIST_OF_EXECUTION_OF_JOB_BY_STATUS.getQuery(id, ExecutionStatus.ABORTED);
+            String listOfExecutionsAborted = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(id, ExecutionStatus.ABORTED);
             countAbort = countAbort + redisClient.llen(listOfExecutionsAborted);
         }
         return new JobExecutionCount(jobId, from, to, countPlanned, countQueued, countRunning, countFinished, countFailed, countAbort);
@@ -495,7 +491,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     public ExecutionLog getLog(Long jobId, Long executionId) {
 
         String executionErrorKey = RedisKey.EXECUTION_ERROR_AND_STACKTRACE_BY_ID.getQuery(jobId, executionId);
-        String executionLogKey = RedisKey.LIST_OF_EXECUTION_LOG_BY_ID.getQuery(jobId, executionId);
+        String executionLogKey = RedisKey.EXECUTION_LOG_BY_ID_LIST.getQuery(jobId, executionId);
 
         ExecutionLog executionLog = new ExecutionLog();
         executionLog.setId(executionId);
@@ -527,7 +523,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     @Override
     public void log(Long jobId, Long executionId, String log) {
 
-        String executionLogKey = RedisKey.LIST_OF_EXECUTION_LOG_BY_ID.getQuery(jobId, executionId);
+        String executionLogKey = RedisKey.EXECUTION_LOG_BY_ID_LIST.getQuery(jobId, executionId);
 
         redisClient.lpush(executionLogKey, log);
     }
