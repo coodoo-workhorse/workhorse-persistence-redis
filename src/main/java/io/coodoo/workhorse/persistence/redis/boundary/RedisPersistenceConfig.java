@@ -9,20 +9,48 @@ import java.nio.charset.StandardCharsets;
 import io.coodoo.workhorse.core.entity.WorkhorseConfig;
 
 /**
+ * The class defines all the configurations that can be applied to Workhorse and to the redis interface
+ * 
  * @author coodoo GmbH (coodoo.io)
  */
 public class RedisPersistenceConfig extends WorkhorseConfig {
 
     protected String persistenceName = "Redis Persistence";
+
+    /**
+     * Host of the redis server
+     */
     protected String redisHost = "localhost";
+
+    /**
+     * Port of the redis server
+     */
     protected int redisPort = 6379;
+
+    /**
+     * Timeout for a request in ms
+     */
     protected int timeOut = 2000;
-    // TODO um was für werte handelt es sich hier? minuten? connections? Speicherzellen? es geht um das pooling von jedis?! bitte die drei attribute
-    // entsprechend benennen
+
+    /**
+     * The max number of connections permitted in the redis pool
+     */
     protected int maxTotal = 10240;
+
+    /**
+     * The max number of connections that may idle in the redis pool
+     */
     protected int maxIdle = 100;
+
+    /**
+     * The min number of connections that may idle in the redis pool
+     */
     protected int minIdle = 50;
-    // TODO die default werte in GenericObjectPoolConfig sind maxToal=8 maxIdle=8 und minIdle=0. wieso sind unsere so anders?
+
+    // TODOX die default werte in GenericObjectPoolConfig sind maxToal=8 maxIdle=8 und minIdle=0. wieso sind unsere so anders?
+
+    // In Halbzeit wurden jahrelang Konfigurationen gesucht, die eine Stabilität der Austausche zwischen dem Wildfly-Server und dem Redis-Server erzielen.
+    // Da Halbzeit unser Testsystem ist, wurden erstmal diese Einstellungen übernommen.
 
     protected String persistenceVersion = null;
     protected String version = null;

@@ -12,7 +12,6 @@ public enum RedisKey {
      * 
      * workhorse:config
      */
-    // TODOX ich sehe nicht, wozu wir das prefix "WORKHORSE_" in den keys brauchen und schlage vor dieses prefix an keinem key zu verwerden
     CONFIG("w:c"),
 
     /**
@@ -20,7 +19,6 @@ public enum RedisKey {
      * 
      * workhorse:job:index
      */
-    // TODOX wofür steht das prefix "INC_"?! das wird mir nicht ersichtich
     JOB_ID_INDEX("w:j:i"),
 
     /**
@@ -158,7 +156,12 @@ public enum RedisKey {
      * 
      * workhorse:log:list
      */
-    WORKHORSE_LOG_LIST("w:lg:l");
+    WORKHORSE_LOG_LIST("w:lg:l"),
+
+    /**
+     * Channel for queue
+     */
+    QUEUE_CHANNEL("w:j:%s:e");
 
     private String query;
 

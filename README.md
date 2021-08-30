@@ -20,28 +20,36 @@
 Before you begin, ensure you have met the following requirements:
 
 TODO: Redis Server/Version!?
-
+* This persistence is compatible with redis 2.8.x, 3.x.x and above* [Redis](https://redis.io/download)
 * You have installed at least [Java 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 * You have [Maven](https://maven.apache.org/download.cgi) running on your system
-  
-## Get Workhorse
 
-TODO: ist das noch aktuell?
-
-Run command:
-
-```
-mvn dependency:get -Dartifact=io.coodoo:workhorse:2.0.0-RC2-SNAPSHOT
-```
 
 ## Install
 
-TODO !
-
+1. Add the following dependency to your project ([published on Maven Central](https://search.maven.org/artifact/io.coodoo/workhorse-persistence-legacy/))
+   
+   ```xml
+   <dependency>
+       <groupId>io.coodoo</groupId>
+       <artifactId>workhorse-persistence-redis</artifactId>
+       <version>2.0.0-RC3-SNAPSHOT</version>
+   </dependency>
+   ```
 
 ## Getting started
 
-TODO !
+After the [installation](#install) all you need is create an `RedisConfig` instance an pass it to the `start()` method of the `WorkhorseService`.
+
+```java
+@Inject
+WorkhorseService workhorseService;
+
+public void startWithRedisPersistence() {
+    RedisConfig redisConfig = new RedisConfigBuilder().build();
+    workhorseService.start(legacyConfig);
+}
+```
 
 
 ## Changelog

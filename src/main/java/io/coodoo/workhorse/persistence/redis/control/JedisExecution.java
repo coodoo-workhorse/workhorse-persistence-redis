@@ -25,7 +25,6 @@ public class JedisExecution {
 
     public void init() {
 
-        // TODOX englisch & punktuation: "Creating Redis pool to server {}:{} " x
         log.info("Creating Redis-Pool mit HOST: {}:{}  ", StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT);
 
         JedisPoolConfig poolConfig = new JedisPoolConfig();
@@ -33,7 +32,6 @@ public class JedisExecution {
         poolConfig.setMinIdle(StaticRedisConfig.MIN_IDLE);
         poolConfig.setMaxIdle(StaticRedisConfig.MAX_IDLE);
 
-        // TODOX warum ist der timeout keine option in RedisPersistenceConfig!?
         jedisPool = new JedisPool(poolConfig, StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT, StaticRedisConfig.TIME_OUT);
 
     }

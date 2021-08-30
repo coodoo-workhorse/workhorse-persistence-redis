@@ -10,15 +10,16 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.ScanParams;
@@ -33,7 +34,6 @@ public class RedisClient {
 
     private static final Logger log = LoggerFactory.getLogger(RedisClient.class);
 
-    // TODOX sollte nach unserer konverntion "objectMapper" benannt sein
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostConstruct
@@ -312,6 +312,37 @@ public class RedisClient {
                 }
             }
         });
+    }
+
+    public boolean publish(String channelId, Object data) {
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+
+                try {
+                    jedis.publish(channelId, objectMapper.writeValueAsString(data));
+                    return true;
+                } catch (JsonProcessingException e) {
+                    log.error("Data could not be serialized to JSON: " + data, e);
+                    return false;
+                }
+            }
+        });
+    }
+
+    public boolean psubscribe(JedisPubSub jedisPubSub, String channelPattern) {
+
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+
+                jedis.psubscribe(jedisPubSub, channelPattern);
+                return true;
+            }
+        });
+
     }
 
 }

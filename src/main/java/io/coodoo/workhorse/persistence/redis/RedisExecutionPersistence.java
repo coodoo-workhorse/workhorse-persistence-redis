@@ -10,7 +10,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
-import io.coodoo.workhorse.core.control.event.NewExecutionEvent;
 import io.coodoo.workhorse.core.entity.Execution;
 import io.coodoo.workhorse.core.entity.ExecutionFailStatus;
 import io.coodoo.workhorse.core.entity.ExecutionLog;
@@ -24,6 +23,8 @@ import io.coodoo.workhorse.persistence.interfaces.listing.ListingResult;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.RedisClient;
 import io.coodoo.workhorse.persistence.redis.control.RedisKey;
+import io.coodoo.workhorse.persistence.redis.control.subscribe.ChannelToSubscribe;
+import io.coodoo.workhorse.persistence.redis.control.subscribe.RedisPubSub;
 import io.coodoo.workhorse.util.CollectionListing;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 
@@ -37,7 +38,10 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     RedisClient redisClient;
 
     @Inject
-    Event<NewExecutionEvent> newExecutionEventEvent;
+    RedisPubSub redisPubSub;
+
+    @Inject
+    Event<ChannelToSubscribe> channelToSubscribe;
 
     @Override
     public Execution getById(Long jobId, Long executionId) {
@@ -185,7 +189,8 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             redisClient.rpush(listOfExecutionByJobOnStatus, executionId);
         }
 
-        newExecutionEventEvent.fireAsync(new NewExecutionEvent(execution.getJobId(), execution.getId()));
+        String channelId = RedisKey.QUEUE_CHANNEL.getQuery(execution.getJobId());
+        redisClient.publish(channelId, execution);
         return redisClient.get(executionKey, Execution.class);
     }
 
@@ -553,6 +558,20 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
     @Override
     public void connect(Object... params) {}
+
+    @Override
+    public void subscribe() {
+
+        // Subscribe the channels of all jobs
+        String channelId = RedisKey.QUEUE_CHANNEL.getQuery("*");
+        channelToSubscribe.fireAsync(new ChannelToSubscribe(channelId));
+    }
+
+    // public void unSubscribe(Long jobId) {
+    //
+    // String channelId = RedisKey.QUEUE_CHANNEL.getQuery(jobId);
+    // redisPubSub.unsubscribe(channelId);
+    // }
 
     @Override
     public String getPersistenceName() {
