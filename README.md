@@ -39,15 +39,15 @@ TODO: Redis Server/Version!?
 
 ## Getting started
 
-After the [installation](#install) all you need is create an `RedisConfig` instance an pass it to the `start()` method of the `WorkhorseService`.
+After the [installation](#install) all you need is create an `RedisPersistenceConfig` instance an pass it to the `start()` method of the `WorkhorseService`.
 
 ```java
 @Inject
 WorkhorseService workhorseService;
 
 public void startWithRedisPersistence() {
-    RedisConfig redisConfig = new RedisConfigBuilder().build();
-    workhorseService.start(legacyConfig);
+    RedisPersistenceConfig redisPersistenceConfig = new RedisPersistenceConfigBuilder().build();
+    workhorseService.start(redisPersistenceConfig);
 }
 ```
 
