@@ -567,11 +567,11 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         channelToSubscribe.fireAsync(new ChannelToSubscribe(channelId));
     }
 
-    // public void unSubscribe(Long jobId) {
-    //
-    // String channelId = RedisKey.QUEUE_CHANNEL.getQuery(jobId);
-    // redisPubSub.unsubscribe(channelId);
-    // }
+    public void unsubscribe() {
+        // unsubscribe the channels of all jobs
+        String channelId = RedisKey.QUEUE_CHANNEL.getQuery("*");
+        redisPubSub.punsubscribe(channelId);
+    }
 
     @Override
     public String getPersistenceName() {
