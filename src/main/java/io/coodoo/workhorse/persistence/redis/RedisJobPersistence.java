@@ -286,7 +286,7 @@ public class RedisJobPersistence implements JobPersistence {
     }
 
     // TODOX warum ist diese methode proteced? kommen noch tests? ;)
-    protected int deleteJobsLog(Long jobId) {
+    private int deleteJobsLog(Long jobId) {
 
         String workhorseLogListKey = RedisKey.WORKHORSE_LOG_LIST.getQuery();
         String workhorseLogByJobKey = RedisKey.WORKHORSE_LOG_BY_JOB_LIST.getQuery(jobId);

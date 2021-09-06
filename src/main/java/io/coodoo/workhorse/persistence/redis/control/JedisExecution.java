@@ -38,10 +38,8 @@ public class JedisExecution {
 
     public <T> T execute(JedisOperation<T> operation) {
 
-        // TODO wie kommt es zu der zahl 500? was bedeutet sie? warum wollen iwr nur >500 dieses log sehen?
-        // Es kann sein, dass wir es nicht brauchen
         if (jedisPool.getNumActive() > 500) {
-            // TODOX sollte es nicht "Redis-Pool" heißen, wie auch in den anderen logs?
+
             log.info("Redis-Pool Stats. Active: {}, Idle: {}, Waiters: {}", jedisPool.getNumActive(), jedisPool.getNumIdle(), jedisPool.getNumWaiters());
         }
         Jedis jedis = null;

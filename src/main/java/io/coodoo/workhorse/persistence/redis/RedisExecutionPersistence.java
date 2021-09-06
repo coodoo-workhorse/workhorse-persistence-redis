@@ -82,7 +82,6 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
         List<Execution> result = new ArrayList<>();
 
-        // TODO ;) These values are work in progress!!
         long start = 0;
         long end = 999;
 
@@ -100,7 +99,6 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             result.addAll(redisClient.get(executionIdKeys, Execution.class));
 
             start = end;
-            // TODOX sollte es hier nicht um 1000 inkrementiert werden?
             end = start + 1000;
             time = System.currentTimeMillis() - startTime;
         }

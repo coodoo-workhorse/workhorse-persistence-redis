@@ -68,14 +68,10 @@ public class RedisConfigPersistence implements ConfigPersistence {
     public void connect(Object... params) {
 
         if (params == null || params.length == 0) {
-            // TODOX ich finde hier sollte es laut krachen. also eine exception fliegen, die kurz sagt, was faul ist. denn sonst könnte macn ja ein fach die
-            // bedingung der nächsten abfrage hier mit aufnehmen.
-
             throw new RuntimeException("No configuration of a redis server found. The redis persistence can not start.");
         }
 
         if (!(params[0] instanceof RedisPersistenceConfig)) {
-            // TODOX ich finde hier sollte es laut krachen. also eine exception fliegen, die kurz sagt, was faul ist.
             throw new RuntimeException("The parameter passed is not an instance of RedisPersistenceConfig. The redis persistence can not start.");
         }
 

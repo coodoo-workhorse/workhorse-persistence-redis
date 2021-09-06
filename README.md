@@ -19,7 +19,6 @@
 
 Before you begin, ensure you have met the following requirements:
 
-TODO: Redis Server/Version!?
 * This persistence is compatible with redis 2.8.x, 3.x.x and above* [Redis](https://redis.io/download)
 * You have installed at least [Java 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
 * You have [Maven](https://maven.apache.org/download.cgi) running on your system
@@ -27,7 +26,7 @@ TODO: Redis Server/Version!?
 
 ## Install
 
-1. Add the following dependency to your project ([published on Maven Central](https://search.maven.org/artifact/io.coodoo/workhorse-persistence-legacy/))
+1. Add the following dependency to your project ([published on Maven Central](https://search.maven.org/artifact/io.coodoo/workhorse-persistence-redis/))
    
    ```xml
    <dependency>

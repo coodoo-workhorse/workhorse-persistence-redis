@@ -39,23 +39,14 @@ public class RedisPubSub extends JedisPubSub {
     }
 
     @Override
-    public void onMessage(String channel, String message) {
-
-        log.info("Channel {} has sent a message: {}", channel, message);
-
-        NewExecutionEvent newExecutionEvent = WorkhorseUtil.jsonToParameters(message, NewExecutionEvent.class);
-        newExecutionEventEvent.fireAsync(newExecutionEvent);
-    }
-
-    @Override
     public void onPSubscribe(String pattern, int subscribedChannels) {
-        log.info("Client is subscribed to pattern: {}", pattern);
-        log.info("Client is subscribed to {} no. of patterns", subscribedChannels);
+        log.info("Client subscribed to pattern: {}", pattern);
+        log.info("Client subscribed to {} no. of patterns", subscribedChannels);
     }
 
     @Override
     public void onPUnsubscribe(String pattern, int subscribedChannels) {
-        log.info("Client is unsubscribed from pattern: {}", pattern);
-        log.info("Client is subscribed to {} no. of patterns", subscribedChannels);
+        log.info("Client unsubscribed from pattern: {}", pattern);
+        log.info("Client subscribed to {} no. of patterns", subscribedChannels);
     }
 }

@@ -47,11 +47,6 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
      */
     protected int minIdle = 50;
 
-    // TODOX die default werte in GenericObjectPoolConfig sind maxToal=8 maxIdle=8 und minIdle=0. wieso sind unsere so anders?
-
-    // In Halbzeit wurden jahrelang Konfigurationen gesucht, die eine Stabilität der Austausche zwischen dem Wildfly-Server und dem Redis-Server erzielen.
-    // Da Halbzeit unser Testsystem ist, wurden erstmal diese Einstellungen übernommen.
-
     protected String persistenceVersion = null;
     protected String version = null;
     {
