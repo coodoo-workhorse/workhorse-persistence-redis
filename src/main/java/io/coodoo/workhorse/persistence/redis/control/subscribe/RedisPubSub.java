@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import io.coodoo.workhorse.core.control.event.NewExecutionEvent;
 import io.coodoo.workhorse.core.entity.Execution;
+import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.util.WorkhorseUtil;
 import redis.clients.jedis.JedisPubSub;
 
@@ -33,8 +34,17 @@ public class RedisPubSub extends JedisPubSub {
         try {
             Execution execution = WorkhorseUtil.jsonToParameters(message, Execution.class);
             newExecutionEventEvent.fireAsync(new NewExecutionEvent(execution.getJobId(), execution.getId()));
+
         } catch (Exception e) {
-            log.error(" Error during recieving the message {} from channel {}. Exception: {}", message, channel, e.getMessage());
+            try {
+                String unsubscribeMessage = WorkhorseUtil.jsonToParameters(message, String.class);
+                if (unsubscribeMessage == StaticRedisConfig.UNSUBSCRIBE_MESSAGE) {
+                    punsubscribe(pattern);
+                }
+
+            } catch (Exception exception) {
+                log.error(" Error during recieving the message {} from channel {}. Exception: {}", message, channel, exception.getMessage());
+            }
         }
     }
 

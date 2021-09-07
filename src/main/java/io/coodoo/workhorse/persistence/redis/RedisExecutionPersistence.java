@@ -152,6 +152,8 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         execution.setId(executionId);
         execution.setCreatedAt(WorkhorseUtil.timestamp());
 
+        String channelId = RedisKey.QUEUE_CHANNEL.getQuery(execution.getJobId());
+
         String executionKey = RedisKey.EXECUTION_BY_ID.getQuery(jobId, executionId);
         redisClient.set(executionKey, execution);
 
@@ -171,6 +173,13 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         if (chainId != null && chainId > 0l) {
             String listOfExecutionOfChainId = RedisKey.EXECUTION_OF_CHAIN_LIST.getQuery(jobId, chainId);
             redisClient.rpush(listOfExecutionOfChainId, executionId);
+
+            // To comment
+            if (executionId.equals(chainId + 1L)) {
+
+                Execution chainHead = getById(jobId, chainId);
+                redisClient.publish(channelId, chainHead);
+            }
         }
 
         // add the execution to the batch
@@ -187,7 +196,6 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             redisClient.rpush(listOfExecutionByJobOnStatus, executionId);
         }
 
-        String channelId = RedisKey.QUEUE_CHANNEL.getQuery(execution.getJobId());
         redisClient.publish(channelId, execution);
         return redisClient.get(executionKey, Execution.class);
     }
@@ -220,7 +228,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         }
 
         // remove the execution ID in the list of executions in the current status
-        String executionStatusKey = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(execution.getStatus());
+        String executionStatusKey = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(jobId, execution.getStatus());
         redisClient.lrem(executionStatusKey, executionId);
 
         // remove the execution to the list of execution of the job with the given ID
@@ -242,13 +250,13 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         Execution oldExecution = redisClient.get(executionKey, Execution.class);
 
         Long chainId = execution.getChainId();
-        if (chainId != null && chainId > 0l) {
+        if (chainId != null && chainId > 0l && !Objects.equals(oldExecution.getChainId(), execution.getChainId())) {
             String listOfExecutionOfChainId = RedisKey.EXECUTION_OF_CHAIN_LIST.getQuery(jobId, chainId);
             redisClient.rpush(listOfExecutionOfChainId, executionId);
         }
 
         Long batchId = execution.getBatchId();
-        if (batchId != null && batchId > 0l) {
+        if (batchId != null && batchId > 0l && !Objects.equals(oldExecution.getBatchId(), execution.getBatchId())) {
             String listOfExecutionOfBatchId = RedisKey.EXECUTION_OF_BATCH_LIST.getQuery(jobId, batchId);
             redisClient.rpush(listOfExecutionOfBatchId, executionId);
         }
@@ -393,7 +401,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             String executionKey = RedisKey.EXECUTION_BY_ID.getQuery(jobId, executionId);
             Execution execution = redisClient.get(executionKey, Execution.class);
             if (ExecutionStatus.QUEUED.equals(execution.getStatus())) {
-                updateStatus(jobId, executionId, ExecutionStatus.ABORTED, ExecutionFailStatus.NONE);
+                updateStatus(jobId, executionId, ExecutionStatus.FAILED, ExecutionFailStatus.EXCEPTION);
             }
         }
         return true;
@@ -568,7 +576,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     public void unsubscribe() {
         // unsubscribe the channels of all jobs
         String channelId = RedisKey.QUEUE_CHANNEL.getQuery("*");
-        redisPubSub.punsubscribe(channelId);
+        redisClient.publish(channelId, StaticRedisConfig.UNSUBSCRIBE_MESSAGE);
     }
 
     @Override

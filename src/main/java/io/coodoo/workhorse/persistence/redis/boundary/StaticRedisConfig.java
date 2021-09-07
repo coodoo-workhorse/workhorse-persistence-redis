@@ -7,6 +7,7 @@ public class StaticRedisConfig {
 
     public static final String NAME = "Redis Persistence";
 
+    public static final String UNSUBSCRIBE_MESSAGE = "Unsubscribe the pattern";
     /**
      * Host of the redis server
      */
