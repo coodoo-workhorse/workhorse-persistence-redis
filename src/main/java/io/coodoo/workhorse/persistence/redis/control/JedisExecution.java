@@ -23,34 +23,31 @@ public class JedisExecution {
 
     private JedisPool jedisPool;
 
-    // public void init(@Observes @Initialized(ApplicationScoped.class) Object init) {
-    // if (jedisPool == null) {
-    // init();
-    // }
-    // }
-
     public void init() {
-        log.info("Creating Redis-Pool mit HOST: {}: {}  ", StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT);
+
+        log.info("Creating Redis-Pool mit HOST: {}:{}  ", StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT);
 
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(StaticRedisConfig.MAX_TOTAL);
         poolConfig.setMinIdle(StaticRedisConfig.MIN_IDLE);
         poolConfig.setMaxIdle(StaticRedisConfig.MAX_IDLE);
 
-        jedisPool = new JedisPool(poolConfig, StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT, 1200);
+        jedisPool = new JedisPool(poolConfig, StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT, StaticRedisConfig.TIME_OUT);
 
     }
 
     public <T> T execute(JedisOperation<T> operation) {
 
         if (jedisPool.getNumActive() > 500) {
-            log.info("Jedis Pool Stats. Active: {}, Idle: {}, Waiters: {}", jedisPool.getNumActive(), jedisPool.getNumIdle(), jedisPool.getNumWaiters());
+
+            log.info("Redis-Pool Stats. Active: {}, Idle: {}, Waiters: {}", jedisPool.getNumActive(), jedisPool.getNumIdle(), jedisPool.getNumWaiters());
         }
         Jedis jedis = null;
         try {
             jedis = jedisPool.getResource();
             return operation.perform(jedis);
         } catch (JedisConnectionException e) {
+            // wieso schluckenb wir hier die exception? ich halte das für gefährlich, denn so enden wir mit korrupten datenständen?!
             log.error("JedisConnectionException BY execute.", e);
             if (null != jedis) {
                 jedis.close();

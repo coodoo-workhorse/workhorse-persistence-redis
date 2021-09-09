@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.annotation.PostConstruct;
@@ -15,12 +14,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPubSub;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Response;
 import redis.clients.jedis.ScanParams;
@@ -35,12 +34,12 @@ public class RedisClient {
 
     private static final Logger log = LoggerFactory.getLogger(RedisClient.class);
 
-    private final ObjectMapper jsonObjectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @PostConstruct
     private void init() {
-        jsonObjectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-        jsonObjectMapper.registerModule(new JavaTimeModule());
+        objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+        objectMapper.registerModule(new JavaTimeModule());
     }
 
     @Inject
@@ -77,63 +76,8 @@ public class RedisClient {
             }
         });
 
-        log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
+        log.debug("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
 
-        return retVal;
-    }
-
-    public <T> T hGet(String key, String field, Class<T> clazz) {
-
-        Long t1 = System.currentTimeMillis();
-
-        T retVal = jedisExecution.execute(new JedisOperation<T>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public T perform(Jedis jedis) {
-
-                String value = jedis.hget(key, field);
-                if (value == null) {
-                    return null;
-                }
-
-                try {
-                    return jsonObjectMapper.convertValue(value, clazz);
-                } catch (IllegalArgumentException e) {
-                    log.error("String could not deserialize object to  " + clazz + ": " + value, e);
-                }
-                return null;
-            }
-
-        });
-
-        log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
-        return retVal;
-    }
-
-    public <T> T hGet(String key, Class<T> clazz) {
-        Long t1 = System.currentTimeMillis();
-
-        T retVal = jedisExecution.execute(new JedisOperation<T>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public T perform(Jedis jedis) {
-
-                Map<String, String> map = jedis.hgetAll(key);
-                if (map == null) {
-                    return null;
-                }
-
-                try {
-                    return jsonObjectMapper.convertValue(map, clazz);
-                } catch (IllegalArgumentException e) {
-                    log.error("MAP could not deserialize object to  " + clazz + ": " + map, e);
-                }
-                return null;
-            }
-
-        });
-
-        log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
         return retVal;
     }
 
@@ -151,7 +95,7 @@ public class RedisClient {
                 }
 
                 try {
-                    return jsonObjectMapper.readValue(objectJson, clazz);
+                    return objectMapper.readValue(objectJson, clazz);
                 } catch (IOException e) {
                     log.error("JSON could not deserialize object to  " + clazz + ": " + objectJson, e);
                 }
@@ -159,7 +103,7 @@ public class RedisClient {
             }
         });
 
-        log.info("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
+        log.debug("Redis Call: {} {}ms", key, System.currentTimeMillis() - t1);
 
         return retVal;
     }
@@ -188,7 +132,7 @@ public class RedisClient {
                     try {
                         String rawJson = jsonData.get();
                         if (rawJson != null) {
-                            datas.add(jsonObjectMapper.readValue(rawJson, clazz));
+                            datas.add(objectMapper.readValue(rawJson, clazz));
                         }
                     } catch (IOException e) {
                         log.error("JSON could not deserialize object to  " + clazz + ": " + jsonData, e);
@@ -198,7 +142,7 @@ public class RedisClient {
             }
         });
 
-        log.info("Redis Call: {} {}ms", keys, System.currentTimeMillis() - t1);
+        log.debug("Redis Call: {} {}ms", keys, System.currentTimeMillis() - t1);
 
         return retVal;
     }
@@ -209,27 +153,10 @@ public class RedisClient {
             @Override
             public Boolean perform(Jedis jedis) {
                 try {
-                    jedis.set(key, jsonObjectMapper.writeValueAsString(data));
+                    jedis.set(key, objectMapper.writeValueAsString(data));
 
                 } catch (JsonProcessingException e) {
                     log.error("Data could not be serialized to JSON: " + data, e);
-                    return false;
-                }
-                return true;
-            }
-        });
-    }
-
-    public Boolean hSet(String key, Object data) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                try {
-                    jedis.hset(key, jsonObjectMapper.convertValue(data, new TypeReference<Map<String, String>>() {}));
-
-                } catch (IllegalArgumentException e) {
-                    log.error("Data could not be serialized to MAP: " + data, e);
                     return false;
                 }
                 return true;
@@ -250,23 +177,6 @@ public class RedisClient {
             public Boolean perform(Jedis jedis) {
                 jedis.del(key);
                 return true;
-            }
-        });
-    }
-
-    /**
-     * Test if the specified key exists. The command returns <code>true</code> if the key exists, otherwise <code>false</code> is returned. Note that even keys
-     * set with an empty string as value will return <code>true</code>. Time complexity: O(1)
-     * 
-     * @param key
-     * @return Boolean reply, true if the key exists, otherwise false
-     */
-    public boolean exists(String key) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                return jedis.exists(key);
             }
         });
     }
@@ -300,59 +210,13 @@ public class RedisClient {
         });
     }
 
-    public <T> Boolean createList(String key, List<T> datas) {
-        return jedisExecution.execute(new JedisOperation<Boolean>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Boolean perform(Jedis jedis) {
-                Pipeline pipeline = jedis.pipelined();
-                // Liste erst löschen, falls bereits vorhanden
-                pipeline.del(key);
-
-                for (T data : datas) {
-                    try {
-                        String json = jsonObjectMapper.writeValueAsString(data);
-                        pipeline.rpush(key, json);
-                    } catch (JsonProcessingException e) {
-                        log.error("JSON could not be created from {}: " + data, e);
-                        return false;
-                    }
-                }
-                pipeline.sync();
-                return true;
-            }
-        });
-    }
-
-    public <T> Long rpush(String key, List<T> objects) {
-        return jedisExecution.execute(new JedisOperation<Long>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Long perform(Jedis jedis) {
-                long count = 0;
-                Pipeline pipeline = jedis.pipelined();
-                for (T object : objects) {
-                    try {
-                        String json = jsonObjectMapper.writeValueAsString(object);
-                        pipeline.rpush(key, json);
-                        count++;
-                    } catch (JsonProcessingException e) {
-                        log.error("JSON could not be created from object in list {} ", key, e);
-                    }
-                }
-                pipeline.sync();
-                return count;
-            }
-        });
-    }
-
     public Boolean rpush(String key, Object data) {
         return jedisExecution.execute(new JedisOperation<Boolean>() {
             @SuppressWarnings("unchecked")
             @Override
             public Boolean perform(Jedis jedis) {
                 try {
-                    jedis.rpush(key, jsonObjectMapper.writeValueAsString(data));
+                    jedis.rpush(key, objectMapper.writeValueAsString(data));
                 } catch (JsonProcessingException e) {
                     log.error("Data could not be serialized to JSON: " + data, e);
                     return false;
@@ -368,7 +232,7 @@ public class RedisClient {
             @Override
             public Boolean perform(Jedis jedis) {
                 try {
-                    jedis.lpush(key, jsonObjectMapper.writeValueAsString(data));
+                    jedis.lpush(key, objectMapper.writeValueAsString(data));
                 } catch (JsonProcessingException e) {
                     log.error("Data could not be serialized to JSON: " + data, e);
                     return false;
@@ -376,27 +240,6 @@ public class RedisClient {
                 return true;
             }
         });
-    }
-
-    public <T> T lpop(String key, Class<T> clazz) {
-
-        return jedisExecution.execute(new JedisOperation<T>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public T perform(Jedis jedis) {
-                String objectJson = jedis.lpop(key);
-                if (objectJson == null) {
-                    return null;
-                }
-                try {
-                    return jsonObjectMapper.readValue(objectJson, clazz);
-                } catch (IOException e) {
-                    log.error("JSON could not be deserialized to" + clazz + " object: " + objectJson, e);
-                }
-                return null;
-            }
-        });
-
     }
 
     public <T> List<T> lrange(String key, Class<T> clazz, long start, long end) {
@@ -414,41 +257,13 @@ public class RedisClient {
 
                 for (String objectJson : list) {
                     try {
-                        datas.add(jsonObjectMapper.readValue(objectJson, clazz));
+                        datas.add(objectMapper.readValue(objectJson, clazz));
                     } catch (IOException e) {
                         log.error("JSON could not be deserialized to" + clazz + " object: " + objectJson, e);
                         return new ArrayList<>();
                     }
                 }
                 return datas;
-            }
-        });
-    }
-
-    /**
-     * Returns the element at index index in the list stored at key. The index is zero-based, so 0 means the first element, 1 the second element and so on.
-     * Negative indices can be used to designate elements starting at the tail of the list. Here, -1 means the last element, -2 means the penultimate and so
-     * forth. When the value at key is not a list, an error is returned.
-     * 
-     * https://redis.io/commands/lindex
-     */
-    public <T> T lindex(String key, Class<T> clazz, long index) {
-
-        return jedisExecution.execute(new JedisOperation<T>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public T perform(Jedis jedis) {
-                String objectJson = jedis.lindex(key, index);
-                if (objectJson == null) {
-                    return null;
-                }
-
-                try {
-                    return jsonObjectMapper.readValue(objectJson, clazz);
-                } catch (IOException e) {
-                    log.error("JSON konnte nicht zu " + clazz + " Objekt deserialisert werden: " + objectJson, e);
-                }
-                return null;
             }
         });
     }
@@ -469,7 +284,7 @@ public class RedisClient {
             @Override
             public Long perform(Jedis jedis) {
                 try {
-                    return jedis.lrem(key, 0, jsonObjectMapper.writeValueAsString(data));
+                    return jedis.lrem(key, 0, objectMapper.writeValueAsString(data));
                 } catch (JsonProcessingException e) {
                     log.error("Data could not be serialized to JSON: " + data, e);
                     return null;
@@ -486,8 +301,8 @@ public class RedisClient {
             public Boolean perform(Jedis jedis) {
                 Transaction transaction = jedis.multi();
                 try {
-                    transaction.lrem(srcListKey, 0, jsonObjectMapper.writeValueAsString(data));
-                    transaction.rpush(destListKey, jsonObjectMapper.writeValueAsString(data));
+                    transaction.lrem(srcListKey, 0, objectMapper.writeValueAsString(data));
+                    transaction.rpush(destListKey, objectMapper.writeValueAsString(data));
                     transaction.exec();
                     return true;
 
@@ -499,14 +314,35 @@ public class RedisClient {
         });
     }
 
-    public <T> void publish(String channelId, String message) {
-        jedisExecution.execute(new JedisOperation<T>() {
+    public boolean publish(String channelId, Object data) {
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
             @SuppressWarnings("unchecked")
             @Override
-            public T perform(Jedis jedis) {
-                jedis.publish(channelId, message);
-                return null;
+            public Boolean perform(Jedis jedis) {
+
+                try {
+                    jedis.publish(channelId, objectMapper.writeValueAsString(data));
+                    return true;
+                } catch (JsonProcessingException e) {
+                    log.error("Data could not be serialized to JSON: " + data, e);
+                    return false;
+                }
             }
         });
     }
+
+    public boolean psubscribe(JedisPubSub jedisPubSub, String channelPattern) {
+
+        return jedisExecution.execute(new JedisOperation<Boolean>() {
+            @SuppressWarnings("unchecked")
+            @Override
+            public Boolean perform(Jedis jedis) {
+
+                jedis.psubscribe(jedisPubSub, channelPattern);
+                return true;
+            }
+        });
+
+    }
+
 }

@@ -9,15 +9,42 @@ import java.nio.charset.StandardCharsets;
 import io.coodoo.workhorse.core.entity.WorkhorseConfig;
 
 /**
+ * The class defines all the configurations that can be applied to Workhorse and to the redis interface
+ * 
  * @author coodoo GmbH (coodoo.io)
  */
 public class RedisPersistenceConfig extends WorkhorseConfig {
 
     protected String persistenceName = "Redis Persistence";
+
+    /**
+     * Host of the redis server
+     */
     protected String redisHost = "localhost";
+
+    /**
+     * Port of the redis server
+     */
     protected int redisPort = 6379;
+
+    /**
+     * Timeout for a request in ms
+     */
+    protected int timeOut = 2000;
+
+    /**
+     * The max number of connections permitted in the redis pool
+     */
     protected int maxTotal = 10240;
+
+    /**
+     * The max number of connections that may idle in the redis pool
+     */
     protected int maxIdle = 100;
+
+    /**
+     * The min number of connections that may idle in the redis pool
+     */
     protected int minIdle = 50;
 
     protected String persistenceVersion = null;
@@ -81,6 +108,14 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
 
     public void setRedisPort(int redisPort) {
         this.redisPort = redisPort;
+    }
+
+    public int getTimeOut() {
+        return timeOut;
+    }
+
+    public void setTimeOut(int timeOut) {
+        this.timeOut = timeOut;
     }
 
     public int getMaxTotal() {

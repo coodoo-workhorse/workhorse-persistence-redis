@@ -7,5 +7,6 @@ import redis.clients.jedis.Jedis;
  */
 public interface JedisOperation<T> {
 
+    @SuppressWarnings("hiding")
     <T> T perform(Jedis jedis);
 }

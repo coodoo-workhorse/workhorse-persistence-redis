@@ -8,8 +8,8 @@ import io.coodoo.workhorse.persistence.interfaces.ConfigPersistence;
 import io.coodoo.workhorse.persistence.redis.boundary.RedisPersistenceConfig;
 import io.coodoo.workhorse.persistence.redis.boundary.StaticRedisConfig;
 import io.coodoo.workhorse.persistence.redis.control.JedisExecution;
-import io.coodoo.workhorse.persistence.redis.control.RedisKey;
 import io.coodoo.workhorse.persistence.redis.control.RedisClient;
+import io.coodoo.workhorse.persistence.redis.control.RedisKey;
 
 /**
  * @author coodoo GmbH (coodoo.io)
@@ -26,28 +26,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
     @Override
     public WorkhorseConfig get() {
 
-        RedisPersistenceConfig redisPersistenceConfig = redisService.get(RedisKey.WORKHORSE_CONFIG.getQuery(), RedisPersistenceConfig.class);
-
-        if (redisPersistenceConfig == null) {
-            return null;
-        }
-        WorkhorseConfig workhorseConfig = new RedisPersistenceConfig();
-        workhorseConfig.setTimeZone(redisPersistenceConfig.getTimeZone());
-        workhorseConfig.setBufferMax(redisPersistenceConfig.getBufferMax());
-        workhorseConfig.setBufferMin(redisPersistenceConfig.getBufferMin());
-        workhorseConfig.setBufferPollInterval(redisPersistenceConfig.getBufferPollInterval());
-        workhorseConfig.setBufferPushFallbackPollInterval(redisPersistenceConfig.getBufferPushFallbackPollInterval());
-        workhorseConfig.setExecutionTimeout(redisPersistenceConfig.getExecutionTimeout());
-        workhorseConfig.setExecutionTimeoutStatus(redisPersistenceConfig.getExecutionTimeoutStatus());
-        workhorseConfig.setMaxExecutionSummaryLength(redisPersistenceConfig.getMaxExecutionSummaryLength());
-        workhorseConfig.setMinutesUntilCleanup(redisPersistenceConfig.getMinutesUntilCleanup());
-        workhorseConfig.setLogChange(redisPersistenceConfig.getLogChange());
-        workhorseConfig.setLogTimeFormat(redisPersistenceConfig.getLogTimeFormat());
-        workhorseConfig.setLogInfoMarker(redisPersistenceConfig.getLogInfoMarker());
-        workhorseConfig.setLogWarnMarker(redisPersistenceConfig.getLogWarnMarker());
-        workhorseConfig.setLogErrorMarker(redisPersistenceConfig.getLogErrorMarker());
-
-        return workhorseConfig;
+        return redisService.get(RedisKey.CONFIG.getQuery(), RedisPersistenceConfig.class);
     }
 
     @Override
@@ -68,7 +47,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
         redisPersisitenceConfig.setLogInfoMarker(workhorseConfig.getLogInfoMarker());
         redisPersisitenceConfig.setLogWarnMarker(workhorseConfig.getLogWarnMarker());
         redisPersisitenceConfig.setLogErrorMarker(workhorseConfig.getLogErrorMarker());
-        redisService.set(RedisKey.WORKHORSE_CONFIG.getQuery(), redisPersisitenceConfig);
+        redisService.set(RedisKey.CONFIG.getQuery(), redisPersisitenceConfig);
 
         return get();
     }
@@ -89,22 +68,22 @@ public class RedisConfigPersistence implements ConfigPersistence {
     public void connect(Object... params) {
 
         if (params == null || params.length == 0) {
-            return;
+            throw new RuntimeException("No configuration of a redis server found. The redis persistence can not start.");
         }
 
         if (!(params[0] instanceof RedisPersistenceConfig)) {
-            return;
+            throw new RuntimeException("The parameter passed is not an instance of RedisPersistenceConfig. The redis persistence can not start.");
         }
 
         RedisPersistenceConfig redisPersistenceConfig = (RedisPersistenceConfig) params[0];
         StaticRedisConfig.REDIS_HOST = redisPersistenceConfig.getRedisHost();
         StaticRedisConfig.REDIS_PORT = redisPersistenceConfig.getRedisPort();
+        StaticRedisConfig.TIME_OUT = redisPersistenceConfig.getTimeOut();
         StaticRedisConfig.MAX_TOTAL = redisPersistenceConfig.getMaxTotal();
         StaticRedisConfig.MAX_IDLE = redisPersistenceConfig.getMaxIdle();
         StaticRedisConfig.MIN_IDLE = redisPersistenceConfig.getMinIdle();
 
         jedisExecution.init();
-
     }
 
 }
