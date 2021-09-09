@@ -33,7 +33,7 @@ public class RedisPubSub extends JedisPubSub {
 
         try {
             Execution execution = WorkhorseUtil.jsonToParameters(message, Execution.class);
-            newExecutionEventEvent.fireAsync(new NewExecutionEvent(execution.getJobId(), execution.getId()));
+            newExecutionEventEvent.fireAsync(new NewExecutionEvent(execution));
 
         } catch (Exception e) {
             try {
