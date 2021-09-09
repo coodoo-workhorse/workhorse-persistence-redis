@@ -35,6 +35,11 @@ public class RedisJobPersistence implements JobPersistence {
     RedisClient redisClient;
 
     @Override
+    public String getPersistenceName() {
+        return StaticRedisConfig.NAME;
+    }
+
+    @Override
     public Job get(Long jobId) {
         String redisKey = RedisKey.JOB_BY_ID.getQuery(jobId);
         return redisClient.get(redisKey, Job.class);
@@ -314,14 +319,6 @@ public class RedisJobPersistence implements JobPersistence {
         redisClient.del(workhorseLogByJobKey);
 
         return 0;
-    }
-
-    @Override
-    public void connect(Object... params) {}
-
-    @Override
-    public String getPersistenceName() {
-        return StaticRedisConfig.NAME;
     }
 
 }

@@ -26,6 +26,11 @@ public class RedisLogPersistence implements LogPersistence {
     RedisClient redisClient;
 
     @Override
+    public String getPersistenceName() {
+        return StaticRedisConfig.NAME;
+    }
+
+    @Override
     public WorkhorseLog get(Long logId) {
 
         String workhorseLogKey = RedisKey.WORKHORSE_LOG_BY_ID.getQuery(logId);
@@ -137,13 +142,5 @@ public class RedisLogPersistence implements LogPersistence {
 
         return 0;
     }
-
-    @Override
-    public String getPersistenceName() {
-        return StaticRedisConfig.NAME;
-    }
-
-    @Override
-    public void connect(Object... params) {}
 
 }

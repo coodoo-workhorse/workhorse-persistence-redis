@@ -44,6 +44,11 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     Event<ChannelToSubscribe> channelToSubscribe;
 
     @Override
+    public String getPersistenceName() {
+        return StaticRedisConfig.NAME;
+    }
+
+    @Override
     public Execution getById(Long jobId, Long executionId) {
 
         if (jobId == null) {
@@ -563,9 +568,6 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     }
 
     @Override
-    public void connect(Object... params) {}
-
-    @Override
     public void subscribe() {
 
         // Subscribe the channels of all jobs
@@ -577,11 +579,6 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         // unsubscribe the channels of all jobs
         String channelId = RedisKey.QUEUE_CHANNEL.getQuery("*");
         redisClient.publish(channelId, StaticRedisConfig.UNSUBSCRIBE_MESSAGE);
-    }
-
-    @Override
-    public String getPersistenceName() {
-        return StaticRedisConfig.NAME;
     }
 
     @Override
