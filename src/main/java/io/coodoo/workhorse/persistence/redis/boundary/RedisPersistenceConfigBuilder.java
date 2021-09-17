@@ -51,8 +51,8 @@ public class RedisPersistenceConfigBuilder extends WorkhorseConfigBuilder {
      * @param redisPort port of the redis server
      * @return the builder to set another configuration
      */
-    public RedisPersistenceConfigBuilder redisPort(String redisPort) {
-        redisPersistenceConfig.setRedisHost(redisPort);
+    public RedisPersistenceConfigBuilder redisPort(int redisPort) {
+        redisPersistenceConfig.setRedisPort(redisPort);
         return this;
     }
 
