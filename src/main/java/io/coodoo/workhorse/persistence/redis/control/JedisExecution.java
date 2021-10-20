@@ -68,10 +68,15 @@ public class JedisExecution {
 
     public void destroy(@Observes @Destroyed(ApplicationScoped.class) Object init) {
 
-        log.info("Close Redis-Pool / Connections: Active: {}, Idle: {}, Waiters: {}", jedisPool.getNumActive(), jedisPool.getNumIdle(),
-                        jedisPool.getNumWaiters());
+        if (jedisPool != null) {
+            log.info("Close Redis-Pool / Connections: Active: {}, Idle: {}, Waiters: {}", jedisPool.getNumActive(), jedisPool.getNumIdle(),
+                            jedisPool.getNumWaiters());
 
-        jedisPool.destroy();
+            jedisPool.destroy();
+        }
+
+        log.info("Workhorse Redis-Pool closed");
+
     }
 
 }
