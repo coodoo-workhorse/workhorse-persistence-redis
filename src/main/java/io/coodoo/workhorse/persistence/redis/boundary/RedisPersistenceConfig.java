@@ -23,6 +23,11 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
     protected String redisHost = "localhost";
 
     /**
+     * Password for the redis server
+     */
+    protected String redisPassword = null;
+
+    /**
      * Port of the redis server
      */
     protected int redisPort = 6379;
@@ -108,6 +113,14 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
 
     public void setRedisPort(int redisPort) {
         this.redisPort = redisPort;
+    }
+
+    public String getRedisPassword() {
+        return redisPassword;
+    }
+
+    public void setRedisPassword(String redisPassword) {
+        this.redisPassword = redisPassword;
     }
 
     public int getTimeOut() {

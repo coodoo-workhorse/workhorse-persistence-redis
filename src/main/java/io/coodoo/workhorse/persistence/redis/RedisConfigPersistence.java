@@ -37,6 +37,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
         RedisPersistenceConfig redisPersistenceConfig = (RedisPersistenceConfig) params[0];
         StaticRedisConfig.REDIS_HOST = redisPersistenceConfig.getRedisHost();
         StaticRedisConfig.REDIS_PORT = redisPersistenceConfig.getRedisPort();
+        StaticRedisConfig.REDIS_PASSWORD = redisPersistenceConfig.getRedisPassword();
         StaticRedisConfig.TIME_OUT = redisPersistenceConfig.getTimeOut();
         StaticRedisConfig.MAX_TOTAL = redisPersistenceConfig.getMaxTotal();
         StaticRedisConfig.MAX_IDLE = redisPersistenceConfig.getMaxIdle();

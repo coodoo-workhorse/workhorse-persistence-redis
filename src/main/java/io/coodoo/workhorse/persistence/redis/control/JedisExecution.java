@@ -32,7 +32,8 @@ public class JedisExecution {
         poolConfig.setMinIdle(StaticRedisConfig.MIN_IDLE);
         poolConfig.setMaxIdle(StaticRedisConfig.MAX_IDLE);
 
-        jedisPool = new JedisPool(poolConfig, StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT, StaticRedisConfig.TIME_OUT);
+        jedisPool = new JedisPool(poolConfig, StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT, StaticRedisConfig.TIME_OUT,
+                        StaticRedisConfig.REDIS_PASSWORD);
 
     }
 

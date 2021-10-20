@@ -93,7 +93,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         long startTime = System.currentTimeMillis();
         long time = 0l;
         long size = redisClient.llen(redisKey);
-        while (time < 50l || result.size() < size) {
+        while (result.size() < size && time < 1500l) {
 
             List<String> executionIdKeys = new ArrayList<>();
             List<Long> executionIds = redisClient.lrange(redisKey, Long.class, start, end);

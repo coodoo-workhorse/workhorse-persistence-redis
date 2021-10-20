@@ -57,6 +57,17 @@ public class RedisPersistenceConfigBuilder extends WorkhorseConfigBuilder {
     }
 
     /**
+     * Set the password of the redis server
+     * 
+     * @param redisPassword password of the redis server
+     * @return the builder to set another configuration
+     */
+    public RedisPersistenceConfigBuilder redisPassword(String redisPassword) {
+        redisPersistenceConfig.setRedisPassword(redisPassword);
+        return this;
+    }
+
+    /**
      * Set the max number of connections permitted in the redis pool
      * 
      * @param maxTotal max number of connections permitted in the redis pool
