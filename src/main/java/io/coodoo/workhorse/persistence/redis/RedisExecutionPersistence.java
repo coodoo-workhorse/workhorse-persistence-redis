@@ -541,7 +541,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
 
         String executionLogKey = RedisKey.EXECUTION_LOG_BY_ID_LIST.getQuery(jobId, executionId);
 
-        redisClient.lpush(executionLogKey, log);
+        redisClient.rpush(executionLogKey, log);
     }
 
     @Override
