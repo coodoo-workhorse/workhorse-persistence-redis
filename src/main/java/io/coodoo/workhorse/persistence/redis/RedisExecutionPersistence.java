@@ -311,10 +311,15 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         List<Execution> executions = getByJobId(jobId, -1l);
 
         for (Execution execution : executions) {
-
-            if (execution.getCreatedAt().isBefore(preDate)) {
-                delete(jobId, execution.getId());
-                count++;
+            switch (execution.getStatus()) {
+                case FINISHED:
+                case FAILED:
+                    if (execution.getCreatedAt().isBefore(preDate)) {
+                        delete(jobId, execution.getId());
+                        count++;
+                    }
+                default:
+                    continue;
             }
         }
         return count;
