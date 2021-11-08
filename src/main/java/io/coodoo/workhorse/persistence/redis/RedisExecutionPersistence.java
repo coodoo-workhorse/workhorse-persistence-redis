@@ -511,19 +511,16 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     @Override
     public ExecutionLog getLog(Long jobId, Long executionId) {
 
-        String executionErrorKey = RedisKey.EXECUTION_ERROR_AND_STACKTRACE_BY_ID.getQuery(jobId, executionId);
         String executionLogKey = RedisKey.EXECUTION_LOG_BY_ID_LIST.getQuery(jobId, executionId);
+        String executionStacktraceKey = RedisKey.EXECUTION_STACKTRACE_BY_ID.getQuery(jobId, executionId);
 
         ExecutionLog executionLog = new ExecutionLog();
         executionLog.setId(executionId);
         executionLog.setExecutionId(executionId);
 
-        ExecutionLog executionError = redisClient.get(executionErrorKey, ExecutionLog.class);
-
-        if (executionError != null) {
-
-            executionLog.setError(executionError.getError());
-            executionLog.setStacktrace(executionError.getStacktrace());
+        ExecutionLog executionStacktrace = redisClient.get(executionStacktraceKey, ExecutionLog.class);
+        if (executionStacktrace != null) {
+            executionLog.setStacktrace(executionStacktrace.getStacktrace());
         }
 
         // get all logs of the list
@@ -550,9 +547,9 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     }
 
     @Override
-    public void log(Long jobId, Long executionId, String error, String stacktrace) {
+    public void logStacktrace(Long jobId, Long executionId, String stacktrace) {
 
-        String executionLogKey = RedisKey.EXECUTION_ERROR_AND_STACKTRACE_BY_ID.getQuery(jobId, executionId);
+        String executionLogKey = RedisKey.EXECUTION_STACKTRACE_BY_ID.getQuery(jobId, executionId);
 
         ExecutionLog executionLog = redisClient.get(executionLogKey, ExecutionLog.class);
 
@@ -565,8 +562,6 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         } else {
             executionLog.setUpdatedAt(WorkhorseUtil.timestamp());
         }
-
-        executionLog.setError(error);
         executionLog.setStacktrace(stacktrace);
 
         redisClient.set(executionLogKey, executionLog);

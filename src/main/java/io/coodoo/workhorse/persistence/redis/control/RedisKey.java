@@ -122,11 +122,11 @@ public enum RedisKey {
     EXECUTION_LOG_BY_ID_LIST("w:j:%s:e:%s:lg:l"),
 
     /**
-     * Store the error of an execution
+     * Store the stacktrace of an execution
      * 
-     * workhorse:job:<jobId>:execution:<executionId>:errorLog:
+     * workhorse:job:<jobId>:execution:<executionId>:stacktrace:
      */
-    EXECUTION_ERROR_AND_STACKTRACE_BY_ID("w:j:%s:e:%s:er"),
+    EXECUTION_STACKTRACE_BY_ID("w:j:%s:e:%s:st"),
 
     // KEYS FOR WORKHORSE LOG
 
