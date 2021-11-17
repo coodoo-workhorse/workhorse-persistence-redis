@@ -1,5 +1,6 @@
 package io.coodoo.workhorse.persistence.redis;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -75,8 +76,12 @@ public class RedisLogPersistence implements LogPersistence {
     public WorkhorseLog persist(WorkhorseLog workhorseLog) {
 
         Long workhorseLogId = redisClient.incr(RedisKey.WORKHORSE_LOG_ID_INDEX.getQuery());
+
         workhorseLog.setId(workhorseLogId);
-        workhorseLog.setCreatedAt(WorkhorseUtil.timestamp());
+
+        LocalDateTime now = WorkhorseUtil.timestamp();
+        workhorseLog.setCreatedAt(now);
+        workhorseLog.setUpdatedAt(now);
 
         String workhorseLogKey = RedisKey.WORKHORSE_LOG_BY_ID.getQuery(workhorseLogId);
         redisClient.set(workhorseLogKey, workhorseLog);
