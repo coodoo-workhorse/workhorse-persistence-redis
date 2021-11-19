@@ -155,7 +155,10 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
         Long executionId = redisClient.incr(RedisKey.EXECUTION_ID_INDEX.getQuery());
         Long jobId = execution.getJobId();
         execution.setId(executionId);
-        execution.setCreatedAt(WorkhorseUtil.timestamp());
+
+        LocalDateTime now = WorkhorseUtil.timestamp();
+        execution.setCreatedAt(now);
+        execution.setUpdatedAt(now);
 
         String channelId = RedisKey.QUEUE_CHANNEL.getQuery(execution.getJobId());
 
