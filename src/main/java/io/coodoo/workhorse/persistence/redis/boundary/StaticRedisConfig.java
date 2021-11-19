@@ -24,6 +24,11 @@ public class StaticRedisConfig {
     public static String REDIS_PASSWORD;
 
     /**
+     * URI to connect to the redis server
+     */
+    public static String REDIS_URI;
+
+    /**
      * Timeout for a request in ms
      */
     public static int TIME_OUT;

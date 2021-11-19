@@ -33,6 +33,13 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
     protected int redisPort = 6379;
 
     /**
+     * Alternatively
+     * 
+     * URI to connect to the redis server
+     */
+    protected String redisUri = null;
+
+    /**
      * Timeout for a request in ms
      */
     protected int timeOut = 2000;
@@ -121,6 +128,14 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
 
     public void setRedisPassword(String redisPassword) {
         this.redisPassword = redisPassword;
+    }
+
+    public String getRedisUri() {
+        return redisUri;
+    }
+
+    public void setRedisUri(String redisUri) {
+        this.redisUri = redisUri;
     }
 
     public int getTimeOut() {

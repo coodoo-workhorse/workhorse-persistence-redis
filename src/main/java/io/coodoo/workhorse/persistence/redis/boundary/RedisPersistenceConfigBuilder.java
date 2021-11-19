@@ -35,6 +35,19 @@ public class RedisPersistenceConfigBuilder extends WorkhorseConfigBuilder {
     }
 
     /**
+     * Set the URI of the redis server. <br>
+     * 
+     * The URI has priority before the host and port defined with the builder.
+     * 
+     * @param redisUri host of the redis server
+     * @return the builder to set another configuration
+     */
+    public RedisPersistenceConfigBuilder redisUri(String redisUri) {
+        redisPersistenceConfig.setRedisUri(redisUri);
+        return this;
+    }
+
+    /**
      * Set the timeout for a request in ms
      * 
      * @param timeout timeout for a request in ms

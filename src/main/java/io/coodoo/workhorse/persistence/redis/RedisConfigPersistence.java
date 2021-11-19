@@ -42,6 +42,7 @@ public class RedisConfigPersistence implements ConfigPersistence {
         StaticRedisConfig.MAX_TOTAL = redisPersistenceConfig.getMaxTotal();
         StaticRedisConfig.MAX_IDLE = redisPersistenceConfig.getMaxIdle();
         StaticRedisConfig.MIN_IDLE = redisPersistenceConfig.getMinIdle();
+        StaticRedisConfig.REDIS_URI = redisPersistenceConfig.getRedisUri();
 
         jedisExecution.init();
     }
