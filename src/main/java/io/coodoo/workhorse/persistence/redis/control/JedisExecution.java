@@ -36,17 +36,17 @@ public class JedisExecution {
         if (StaticRedisConfig.REDIS_URI != null && !StaticRedisConfig.REDIS_URI.isEmpty()) {
             URI uri;
 
-            log.info("Creating Redis-Pool mit URI: {}  ", StaticRedisConfig.REDIS_URI);
+            log.info("Creating Redis-Pool with URI: {}  ", StaticRedisConfig.REDIS_URI);
             try {
                 uri = new URI(StaticRedisConfig.REDIS_URI);
                 jedisPool = new JedisPool(poolConfig, uri);
                 return;
             } catch (URISyntaxException e) {
-                log.error("The given URI was not conform: {}", StaticRedisConfig.REDIS_URI);
+                log.error("The given URI could not be parsed as a URI reference: {}", StaticRedisConfig.REDIS_URI);
             }
         }
 
-        log.info("Creating Redis-Pool mit HOST: {}:{}  ", StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT);
+        log.info("Creating Redis-Pool with HOST: {}:{}  ", StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT);
 
         jedisPool = new JedisPool(poolConfig, StaticRedisConfig.REDIS_HOST, StaticRedisConfig.REDIS_PORT, StaticRedisConfig.TIME_OUT,
                         StaticRedisConfig.REDIS_PASSWORD);

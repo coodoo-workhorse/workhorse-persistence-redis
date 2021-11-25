@@ -24,17 +24,6 @@ public class RedisPersistenceConfigBuilder extends WorkhorseConfigBuilder {
     }
 
     /**
-     * Set the host of the redis server
-     * 
-     * @param redisHost host of the redis server
-     * @return the builder to set another configuration
-     */
-    public RedisPersistenceConfigBuilder redisHost(String redisHost) {
-        redisPersistenceConfig.setRedisHost(redisHost);
-        return this;
-    }
-
-    /**
      * Set the URI of the redis server. <br>
      * 
      * The URI has priority before the host and port defined with the builder.
@@ -44,6 +33,17 @@ public class RedisPersistenceConfigBuilder extends WorkhorseConfigBuilder {
      */
     public RedisPersistenceConfigBuilder redisUri(String redisUri) {
         redisPersistenceConfig.setRedisUri(redisUri);
+        return this;
+    }
+
+    /**
+     * Set the host of the redis server
+     * 
+     * @param redisHost host of the redis server
+     * @return the builder to set another configuration
+     */
+    public RedisPersistenceConfigBuilder redisHost(String redisHost) {
+        redisPersistenceConfig.setRedisHost(redisHost);
         return this;
     }
 

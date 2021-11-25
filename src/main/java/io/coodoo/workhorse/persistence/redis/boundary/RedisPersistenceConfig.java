@@ -19,22 +19,26 @@ public class RedisPersistenceConfig extends WorkhorseConfig {
 
     /**
      * Host of the redis server
+     * 
+     * If the URI is set, this host is ignored
      */
     protected String redisHost = "localhost";
 
     /**
      * Password for the redis server
+     * 
+     * If the URI is set, this password is ignored
      */
     protected String redisPassword = null;
 
     /**
      * Port of the redis server
+     * 
+     * If the URI is set, this port is ignored
      */
     protected int redisPort = 6379;
 
     /**
-     * Alternatively
-     * 
      * URI to connect to the redis server
      */
     protected String redisUri = null;
