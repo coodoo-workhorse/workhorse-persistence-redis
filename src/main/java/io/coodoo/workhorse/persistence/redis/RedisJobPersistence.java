@@ -1,5 +1,6 @@
 package io.coodoo.workhorse.persistence.redis;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -199,7 +200,10 @@ public class RedisJobPersistence implements JobPersistence {
         String jobListByStatusKey = RedisKey.JOB_BY_STATUS_LIST.getQuery(job.getStatus());
 
         job.setId(id);
-        job.setCreatedAt(WorkhorseUtil.timestamp());
+
+        LocalDateTime now = WorkhorseUtil.timestamp();
+        job.setCreatedAt(now);
+        job.setUpdatedAt(now);
 
         // add the job as JSON
         redisClient.set(jobKey, job);
