@@ -14,8 +14,8 @@ import io.coodoo.workhorse.core.entity.Execution;
 import io.coodoo.workhorse.core.entity.ExecutionFailStatus;
 import io.coodoo.workhorse.core.entity.ExecutionLog;
 import io.coodoo.workhorse.core.entity.ExecutionStatus;
+import io.coodoo.workhorse.core.entity.ExecutionStatusCounts;
 import io.coodoo.workhorse.core.entity.Job;
-import io.coodoo.workhorse.core.entity.JobExecutionCount;
 import io.coodoo.workhorse.core.entity.JobExecutionStatusSummary;
 import io.coodoo.workhorse.persistence.interfaces.ExecutionPersistence;
 import io.coodoo.workhorse.persistence.interfaces.listing.ListingParameters;
@@ -466,7 +466,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
     }
 
     @Override
-    public JobExecutionCount getJobExecutionCount(Long jobId, LocalDateTime from, LocalDateTime to) {
+    public ExecutionStatusCounts getExecutionStatusCounts(Long jobId, LocalDateTime from, LocalDateTime to) {
 
         // The parameter -from- and -to- are not considered for to performance purpose with redis
 
@@ -508,7 +508,7 @@ public class RedisExecutionPersistence implements ExecutionPersistence {
             String listOfExecutionsAborted = RedisKey.EXECUTION_OF_JOB_BY_STATUS_LIST.getQuery(id, ExecutionStatus.ABORTED);
             countAbort = countAbort + redisClient.llen(listOfExecutionsAborted);
         }
-        return new JobExecutionCount(jobId, from, to, countPlanned, countQueued, countRunning, countFinished, countFailed, countAbort);
+        return new ExecutionStatusCounts(jobId, from, to, countPlanned, countQueued, countRunning, countFinished, countFailed, countAbort);
     }
 
     @Override
